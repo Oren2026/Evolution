@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolution OS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #e0e0e8; line-height: 1.7; }
+  a { color: #79c0ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { text-align: center; padding: 80px 20px 40px; background: linear-gradient(180deg, #0f0f1a 0%, #0a0a0f 100%); }
+  header h1 { font-size: 3.2em; font-weight: 800; background: linear-gradient(90deg, #79c0ff, #d2a8ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header p { margin-top: 10px; color: #8b949e; font-size: 1.1em; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75em; font-weight: 600; margin: 4px; }
+  .badge-rust { background: #8b1515; color: #ff7b72; }
+  .badge-stable { background: #1a3a2a; color: #56d364; }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 20px 80px; }
+  section { margin-bottom: 56px; }
+  section h2 { font-size: 1.5em; margin-bottom: 16px; border-left: 4px solid #79c0ff; padding-left: 14px; color: #79c0ff; }
+  section p { color: #c9d1d9; margin-bottom: 12px; }
+  code { background: #161b22; border: 1px solid #30363d; border-radius: 4px; padding: 2px 6px; font-size: 0.88em; color: #e6edf3; }
+  pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin-bottom: 16px; }
+  pre code { background: none; border: none; padding: 0; }
+  .layer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
+  .layer-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; }
+  .layer-card h3 { font-size: 1em; margin-bottom: 8px; }
+  .layer-card.L0 { border-left: 3px solid #79c0ff; }
+  .layer-card.L1 { border-left: 3px solid #a371f7; }
+  .layer-card.L2 { border-left: 3px solid #d2a8ff; }
+  .layer-card.L3 { border-left: 3px solid #ffa657; }
+  .layer-card .tag { display: inline-block; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-bottom: 8px; font-weight: 700; }
+  .L0 .tag { background: #0d3557; color: #79c0ff; }
+  .L1 .tag { background: #3d1f6e; color: #a371f7; }
+  .L2 .tag { background: #2d1f4e; color: #d2a8ff; }
+  .L3 .tag { background: #5c2d0e; color: #ffa657; }
+  .layer-card p { font-size: 0.88em; color: #8b949e; }
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .module-item { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px 16px; font-size: 0.9em; }
+  .module-item span { color: #79c0ff; font-weight: 600; margin-right: 8px; }
+  .cli-table { width: 100%; border-collapse: collapse; }
+  .cli-table th { text-align: left; padding: 10px 14px; background: #161b22; border-bottom: 1px solid #30363d; color: #79c0ff; font-size: 0.85emen; }
+  .cli-table td { padding: 10px 14px; border-bottom: 1px solid #21262d; font-size: 0.9em; }
+  .cli-table td:first-child { color: #e6edf3; font-family: monospace; }
+  .cli-table tr:hover td { background: #161b22; }
+  .install-step { display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #79c0ff; color: #0a0a0f; font-weight: 800; font-size: 0.85em; display: flex; align-items: center; justify-content: center; }
+  .step-content { padding-top: 2px; }
+  .step-content h4 { font-size: 1em; margin-bottom: 4px; }
+  .step-content p { font-size: 0.88em; color: #8b949e; }
+  footer { text-align: center; padding: 40px 20px; color: #484f58; font-size: 0.85em; border-top: 1px solid #21262d; margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Evolution OS</h1>
+  <p>意圖驅動的多平台軟體編譯框架</p>
+  <div style="margin-top:16px">
+    <span class="badge badge-rust">Rust</span>
+    <span class="badge badge-stable">Stable</span>
+    <span class="badge" style="background:#1a2a3a;color:#79c0ff;border:1px solid #30363d">MIT License</span>
+  </div>
+</header>
+
+<div class="container">
+
+<section>
+  <h2>概述</h2>
+  <p>Evolution OS 是一個意圖驅動（Intent-driven）的軟體編譯框架，設計用於處理跨平台專案的自動化建置、分析與優化。核心思想是讓系統「理解你想要什麼，而不是你命令它做什麼」。</p>
+  <p>通過自然語言輸入，系統自動推理模組依賴關係、重構優先級、平台兼容性，輸出可直接部署的編譯產物。</p>
+</section>
+
+<section>
+  <h2>Layer 0→3 架構</h2>
+  <p>系統採用四層漸進式決策架構：</p>
+  <div class="layer-grid">
+    <div class="layer-card L0">
+      <span class="tag">Layer 0</span>
+      <h3>意圖層 Intent</h3>
+      <p>解析使用者輸入意圖，轉換為系統內部可處理的任務樹。</p>
+    </div>
+    <div class="layer-card L1">
+      <span class="tag">Layer 1</span>
+      <h3>分類層 Categorization</h3>
+      <p>將意圖分類為編譯、重構、分析等類別，選擇對應的處理管線。</p>
+    </div>
+    <div class="layer-card L2">
+      <span class="tag">Layer 2</span>
+      <h3>路由層 Routing</h3>
+      <p>分散式節點路由：各模組在本地做決策，不依賴中央強節點。</p>
+    </div>
+    <div class="layer-card L3">
+      <span class="tag">Layer 3</span>
+      <h3>執行層 Execution</h3>
+      <p>實際執行編譯、建置分析、產出最終結果。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Core Modules</h2>
+  <div class="module-grid">
+    <div class="module-item"><span>kernel</span> Runtime 核心與執行引擎</div>
+    <div class="module-item"><span>compiler</span> 多平台編譯器前端</div>
+    <div class="module-item"><span>executor</span> 任務執行器與工作緒池</div>
+    <div class="module-item"><span>planner</span> 任務規劃與依賴解析</div>
+    <div class="module-item"><span>node</span> 節點暫存器與工廠</div>
+    <div class="module-item"><span>chain</span> 連鎖發現與拓撲排序</div>
+    <div class="module-item"><span>graph</span> 依賴圖建構與查詢</div>
+    <div class="module-item"><span>system</span> 系統安裝與環境偵測</div>
+    <div class="module-item"><span>model</span> LLM 後端整合</div>
+    <div class="module-item"><span>registry</span> 全域節點註冊表</div>
+  </div>
+</section>
+
+<section>
+  <h2>System Processes</h2>
+  <div class="module-grid">
+    <div class="module-item"><span>init</span> 初始化系統與節點圖</div>
+    <div class="module-item"><span>build</span> 觸發多平台建置流程</div>
+    <div class="module-item"><span>analyze</span> 專案結構分析</div>
+    <div class="module-item"><span>replan</span> 動態重規劃執行策略</div>
+    <div class="module-item"><span>install</span> 系統級工具鏈安裝</div>
+    <div class="module-item"><span>report</span> 建置報告生成</div>
+  </div>
+</section>
+
+<section>
+  <h2>CLI Commands</h2>
+  <table class="cli-table">
+    <thead>
+      <tr><th>Command</th><th>說明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>evolution analyze</td><td>分析專案結構並生成依賴圖</td></tr>
+      <tr><td>evolution build</td><td>觸發多平台編譯流程</td></tr>
+      <tr><td>evolution plan</td><td>顯示執行計畫而不實際執行</td></tr>
+      <tr><td>evolution init</td><td>初始化新專案或現有專案</td></tr>
+      <tr><td>planner_cli manifest</td><td>生成 Planner 意圖描述</td></tr>
+      <tr><td>analyze_project</td><td>分析目錄結構與模組關係</td></tr>
+      <tr><td>demo_framework</td><td>展示框架核心功能範例</td></tr>
+      <tr><td>integration_demo</td><td>跨模組整合測試演示</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>建置方式</h2>
+  <pre><code>cargo build --release
+cargo test --no-default-features</code></pre>
+  <p>需要 Rust 1.70+。建議使用 <code>--no-default-features</code> 避免編譯期間的 LLM 後端依賴（可在 runtime 透過設定啟用）。</p>
+</section>
+
+<section>
+  <h2>安裝說明</h2>
+  <div class="install-step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <h4>Clone 本專案</h4>
+      <p><code>git clone https://github.com/Oren2026/Evolution.git</code></p>
+    </div>
+  </div>
+  <div class="install-step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <h4>編譯</h4>
+      <p><code>cargo build --release</code></p>
+    </div>
+  </div>
+  <div class="install-step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <h4>執行</h4>
+      <p>產物位於 <code>target/release/</code> 目錄下，包含 <code>evolution</code> 主程式及多個 CLI 工具。</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <p>Evolution OS · <a href="https://github.com/Oren2026/Evolution">GitHub</a> · MIT License</p>
+</footer>
+
+</body>
+</html>
