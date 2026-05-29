@@ -49,8 +49,7 @@ jobs:
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
 
-      - name: Package (Linux/macOS)
-        if: matrix.os != 'windows-latest'
+      - name: Package
         shell: bash
         run: |
           mkdir -p upload
@@ -61,20 +60,9 @@ jobs:
             [ -f "$src" ] && cp "$src" "upload/${bin}-${SUFFIX}"
           done
 
-      - name: Package (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path upload -Force | Out-Null
-          $bins = @('evolution','planner_cli','analyze_project','demo_framework','integration_demo')
-          foreach ($bin in $bins) {
-            $src = "target/release/$bin.exe"
-            if (Test-Path $src) {
-              Copy-Item $src "upload/${bin}-windows-x86_64"
-            }
-          }
-
-      - name: Upload to GitHub Release
+      - name: Upload Release Asset (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
@@ -82,6 +70,15 @@ jobs:
           TAG="${TAG##*/}"
           for f in upload/*; do
             [ -f "$f" ] || continue
-            echo "Uploading $f to release $TAG"
-            gh release upload "$TAG" "$f" --repo "$GITHUB_REPOSITORY" || echo "  (already exists or skipped)"
+            echo "Uploading $f"
+            gh release upload "$TAG" "$f" --repo "$GITHUB_REPOSITORY" || echo "skipped"
           done
+
+      - name: Upload Release Asset (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          for %%f in (upload\*) do gh release upload %TAG% "%%f" --repo %GITHUB_REPOSITORY%
