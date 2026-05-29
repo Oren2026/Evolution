@@ -10,6 +10,9 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: never
+  CARGO_BUILD_JOBS: 2
+  CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
+  RUSTFLAGS: '-Awarnings'
 
 jobs:
   build:
@@ -43,7 +46,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --release --features llm
+        run: cargo build --release --features llm -j 2
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
 
