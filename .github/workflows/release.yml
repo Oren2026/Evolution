@@ -70,21 +70,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p upload
-          EXT="${{ matrix.ext }}"
-          SUFFIX="${{ matrix.suffix }}"
-          for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
-            src="target/release/$bin$EXT"
-            [ -f "$src" ] && cp "$src" "upload/${bin}-${SUFFIX}"
-          done
+          cp "target/release/evolution${{ matrix.ext }}" "upload/evolution-${{ matrix.suffix }}"
+          cp "target/release/evolution${{ matrix.ext }}" "upload/evolution${{ matrix.ext }}"
 
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
           if not exist upload mkdir upload
-          for %%f in (evolution.exe planner_cli.exe analyze_project.exe demo_framework.exe integration_demo.exe) do (
-            if exist "target\release\%%f" copy "target\release\%%f" "upload\%%f"
-          )
+          copy "target\release\evolution.exe" "upload\evolution.exe"
 
       - name: Upload Release Asset (Linux/macOS)
         if: matrix.os != 'windows-latest'
