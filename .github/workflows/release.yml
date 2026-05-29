@@ -10,7 +10,6 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: never
-  CARGO_BUILD_JOBS: 2
   CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
   RUSTFLAGS: '-Awarnings'
 
@@ -63,60 +62,14 @@ jobs:
           echo "=== Upload ==="
           ls -la upload/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bins-${{ matrix.suffix }}
-          path: upload/
-          retention-days: 1
-
-  # ── Create draft release (only one job does this) ──────────────
-  create-release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create draft release via gh CLI
+      - name: Upload to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="${GITHUB_REF##*/}"
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" 2>/dev/null; then
-            echo "Release already exists, skipping create"
-          else
-            gh release create "$TAG" \
-              --draft \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "Evolution OS $TAG" \
-              --notes-file /dev/null
-          fi
-
-  # ── Attach all platform artifacts to the release ──────────────
-  attach:
-    needs: [build, create-release]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - suffix: linux-x86_64
-          - suffix: macos-arm64
-          - suffix: macos-x86_64
-          - suffix: windows-x86_64
-
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: bins-${{ matrix.suffix }}
-          path: upload/
-
-      - name: Attach to release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${GITHUB_REF##*/}"
-          gh release edit "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --add-asset upload/* || echo "Attach step done (assets may already be present)"
+          TAG="${TAG##*/}"
+          for f in upload/*; do
+            [ -f "$f" ] || continue
+            echo "Uploading $f to release $TAG"
+            gh release upload "$TAG" "$f" --repo "$GITHUB_REPOSITORY" || echo "  (already exists or skipped)"
+          done
