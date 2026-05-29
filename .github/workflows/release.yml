@@ -63,15 +63,16 @@ jobs:
 
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p upload
-          EXT=".exe"
-          SUFFIX="windows-x86_64"
-          for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
-            src="target/release/$bin$EXT"
-            [ -f "$src" ] && cp "$src" "upload/${bin}-${SUFFIX}"
-          done
+          New-Item -ItemType Directory -Path upload -Force | Out-Null
+          $bins = @('evolution','planner_cli','analyze_project','demo_framework','integration_demo')
+          foreach ($bin in $bins) {
+            $src = "target/release/$bin.exe"
+            if (Test-Path $src) {
+              Copy-Item $src "upload/${bin}-windows-x86_64"
+            }
+          }
 
       - name: Upload to GitHub Release
         env:
