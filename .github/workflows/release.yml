@@ -78,6 +78,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           files: ${{ matrix.artifact }}
-          generate_release_notes: true
+          generate_release_notes: false
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
