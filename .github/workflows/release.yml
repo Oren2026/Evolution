@@ -46,7 +46,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --release --features llm -j 2
+        run: cargo build --release
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
 
