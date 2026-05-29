@@ -20,6 +20,22 @@ reqwest = { version = "0.12", features = ["json", "blocking"] }
 name = "evolution"
 path = "src/main.rs"
 
+[[bin]]
+name = "planner_cli"
+path = "src/bin/planner_cli.rs"
+
+[[bin]]
+name = "analyze_project"
+path = "src/bin/analyze_project.rs"
+
+[[bin]]
+name = "demo_framework"
+path = "src/bin/demo_framework.rs"
+
+[[bin]]
+name = "integration_demo"
+path = "src/bin/integration_demo.rs"
+
 [lib]
 name = "evolution_os"
 path = "src/lib.rs"
