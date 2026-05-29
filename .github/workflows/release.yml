@@ -49,7 +49,8 @@ jobs:
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
 
-      - name: Package
+      - name: Package (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         shell: bash
         run: |
           mkdir -p upload
@@ -59,8 +60,18 @@ jobs:
             src="target/release/$bin$EXT"
             [ -f "$src" ] && cp "$src" "upload/${bin}-${SUFFIX}"
           done
-          echo "=== Upload ==="
-          ls -la upload/
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          mkdir -p upload
+          EXT=".exe"
+          SUFFIX="windows-x86_64"
+          for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
+            src="target/release/$bin$EXT"
+            [ -f "$src" ] && cp "$src" "upload/${bin}-${SUFFIX}"
+          done
 
       - name: Upload to GitHub Release
         env:

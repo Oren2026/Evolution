@@ -6,6 +6,7 @@ use evolution_os::*;
 use evolution_os::compiler::ExecutionGraph;
 use evolution_os::planner::manifest::{EstimatedNode, Manifest};
 use evolution_os::planner::stages::Stage;
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 struct DummyNode {
