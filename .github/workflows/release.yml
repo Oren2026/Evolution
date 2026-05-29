@@ -48,6 +48,7 @@ jobs:
           CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
 
       - name: Package
+        shell: bash
         run: |
           mkdir -p upload
           EXT="${{ matrix.ext }}"
