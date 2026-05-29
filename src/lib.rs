@@ -29,6 +29,7 @@ pub use node::{
 };
 pub use chain::{ChainDiscovery, DiscoveryResult};
 pub use skill::{SkillRegistry, Skill};
+pub use runtime::{Executor, GraphExecutor};
 
 // ===== 版本標記 =====
 

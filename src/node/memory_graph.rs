@@ -65,10 +65,6 @@ impl MemoryGraph {
 
     /// 根據 ID 取得節點
     pub fn get_node(&mut self, id: &str) -> Option<&dyn Node> {
-        let exists = self.nodes.contains_key(id);
-        if exists {
-            *self.hit_count.entry(id.to_string()).or_insert(0) += 1;
-        }
         self.nodes.get(id).map(|b| b.as_ref())
     }
 
@@ -383,10 +379,10 @@ mod tests {
         let mut graph = MemoryGraph::new();
         graph.add_node(TestSkillNode::new("test_node", vec![]));
 
-        // 第一次 get_node 會增加 count
-        graph.get_node("test_node");
-        graph.get_node("test_node");
-        graph.get_node("test_node");
+        // Call hit() directly (the public API for tracking usage)
+        graph.hit("test_node");
+        graph.hit("test_node");
+        graph.hit("test_node");
 
         let hottest = graph.hottest(1);
         assert_eq!(hottest[0].1, 3);
