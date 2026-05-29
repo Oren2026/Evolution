@@ -14,7 +14,23 @@ env:
   RUSTFLAGS: '-Awarnings'
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.create.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create GitHub Release
+        id: create
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF##*/}"
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
   build:
+    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -49,7 +65,8 @@ jobs:
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
 
-      - name: Package
+      - name: Package (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         shell: bash
         run: |
           mkdir -p upload
@@ -60,18 +77,26 @@ jobs:
             [ -f "$src" ] && cp "$src" "upload/${bin}-${SUFFIX}"
           done
 
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        run: |
+          if not exist upload mkdir upload
+          for %%f in (evolution.exe planner_cli.exe analyze_project.exe demo_framework.exe integration_demo.exe) do (
+            if exist "target\release\%%f" copy "target\release\%%f" "upload\%%f"
+          )
+
       - name: Upload Release Asset (Linux/macOS)
         if: matrix.os != 'windows-latest'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.create-release.outputs.tag }}
         run: |
-          TAG="${TAG##*/}"
           for f in upload/*; do
             [ -f "$f" ] || continue
             echo "Uploading $f"
-            gh release upload "$TAG" "$f" --repo "$GITHUB_REPOSITORY" || echo "skipped"
+            gh release upload "$TAG" "$f" --repo "$GITHUB_REPOSITORY" || echo "upload failed"
           done
 
       - name: Upload Release Asset (Windows)
@@ -79,6 +104,6 @@ jobs:
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.create-release.outputs.tag }}
         run: |
           for %%f in (upload\*) do gh release upload %TAG% "%%f" --repo %GITHUB_REPOSITORY%
