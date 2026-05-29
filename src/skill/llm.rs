@@ -2,7 +2,10 @@
 //!
 //! 技能收到結構化資料（dirs、files、stats），呼叫 Ollama 生成自然語言摘要。
 
-use crate::model::{DispatchError, ModelDispatcher, ModelRequest, ModelResponse};
+use crate::model::{ModelDispatcher, ModelRequest};
+
+#[cfg(test)]
+use crate::model::{DispatchError, ModelResponse};
 use crate::skill::{Skill, SkillOutput};
 
 pub struct LLMSummarizerSkill {

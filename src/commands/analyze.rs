@@ -1,7 +1,6 @@
 //! analyze — 一鍵 Planner → Executor
 
 use crate::commands::new_project::evolution_root;
-use std::path::PathBuf;
 
 /// 分析並執行任務
 pub fn analyze(task: &str, project_name: Option<&str>) {
@@ -54,7 +53,7 @@ pub fn analyze(task: &str, project_name: Option<&str>) {
     };
 
     // 執行 executor（sync）
-    let output = {
+    let _output = {
         use evolution_os::kernel::kernel_runtime::KernelRuntime;
 
         let mut kr = KernelRuntime::new();

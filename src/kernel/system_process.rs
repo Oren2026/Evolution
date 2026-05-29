@@ -7,7 +7,7 @@
 //! - NodeProcess：將 Node 實例包裝為行程，透過 Kernel.syscall() 與其他行程溝通
 //! - Planner/Compiler/Executor 各自是獨立的行程，透过 Kernel 協調
 
-use crate::kernel::{Kernel, Pid, ProcessState, SysCall, SysCallKind, SysCallResult};
+use crate::kernel::{Kernel, Pid};
 
 /// 系統行程 Trait — 所有需要由 Kernel 管理的單元都要實作這個 trait
 pub trait SystemProcess {

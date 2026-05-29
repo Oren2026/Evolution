@@ -204,7 +204,7 @@ impl Installer {
         let stderr = child.stderr.take();
 
         // 用一個執行緒讀 stdout，另一個讀 stderr
-        let stdout_handle = stdout.map(|mut io| {
+        let stdout_handle = stdout.map(|io| {
             std::thread::spawn(move || {
                 use std::io::{BufRead, BufReader};
                 let reader = BufReader::new(io);
@@ -217,7 +217,7 @@ impl Installer {
             })
         });
 
-        let stderr_handle = stderr.map(|mut io| {
+        let stderr_handle = stderr.map(|io| {
             std::thread::spawn(move || {
                 use std::io::{BufRead, BufReader};
                 let reader = BufReader::new(io);

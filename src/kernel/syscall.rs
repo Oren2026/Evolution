@@ -10,7 +10,6 @@
 //! - Exit     — 行程結束
 
 use crate::kernel::Pid;
-use crate::kernel::process::ProcessState;
 
 /// 系統呼叫類型
 #[derive(Debug, Clone)]

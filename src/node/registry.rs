@@ -3,7 +3,6 @@
 //! 管理所有節點的注册、查詢、移除。
 
 use super::{Node, NodeCategory};
-use std::any::Any;
 use std::collections::HashMap;
 
 /// 節點注册表

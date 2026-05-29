@@ -7,7 +7,6 @@
 //!   evolution shell                互動模式
 
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
 
 mod commands;
 

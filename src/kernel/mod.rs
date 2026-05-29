@@ -109,7 +109,7 @@ impl Kernel {
     }
 
     /// Send：傳訊息
-    fn do_send(&mut self, caller: Pid, target: Pid, content: String) -> SysCallResult {
+    fn do_send(&mut self, _caller: Pid, target: Pid, content: String) -> SysCallResult {
         // 驗證目標存在
         if !self.table.exists(target) {
             return SysCallResult::err(&format!(

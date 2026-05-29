@@ -10,13 +10,8 @@
 //! # // 功能已由單元測試覆蓋（test_boot_and_run_sample_*）
 //! ```
 
-use crate::kernel::{
-    Kernel, Pid, SysCall, SysCallKind, SysCallResult, ResultValue,
-    NodeProcess, PlannerProcess, ExecutorProcess,
-};
-use crate::kernel::system_process::SystemProcess;
+use crate::kernel::{Kernel, Pid, ResultValue, SysCall, SysCallResult};
 use crate::planner::manifest::Manifest;
-use std::collections::HashMap;
 
 /// Planner 行程資訊
 #[derive(Debug)]
@@ -212,7 +207,7 @@ impl KernelRuntime {
         match exec_graph {
             Ok(eg) => {
                 let mut graph = crate::node::MemoryGraph::new();
-                let mut executor = crate::runtime::GraphExecutor::new();
+                let executor = crate::runtime::GraphExecutor::new();
                 let results = executor.execute(&mut graph, &eg);
                 let count = results.len();
                 format!("executed {} nodes", count)

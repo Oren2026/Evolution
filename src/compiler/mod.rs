@@ -56,7 +56,7 @@ impl Compiler {
     /// Solo 模式：單一節點處理簡單任務
     fn execute_solo(&self, manifest: &Manifest) -> CompilerResult {
         let mut graph = MemoryGraph::new();
-        let mut node = node_factory::LLMNode::new(
+        let node = node_factory::LLMNode::new(
             &crate::planner::manifest::EstimatedNode {
                 id: "solo".to_string(),
                 role: "軟體工程師".to_string(),
@@ -84,7 +84,7 @@ impl Compiler {
         // 建立執行圖
         let exec_graph = match ExecutionGraph::from_manifest(manifest) {
             Ok(g) => g,
-            Err(e) => {
+            Err(_) => {
                 return CompilerResult {
                     success: false,
                     node_outputs: vec![],

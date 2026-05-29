@@ -145,16 +145,12 @@ impl Manifest {
         Self::from_task_inner(task, false, None, "llama3")
     }
 
-    /// 從任務描述產生完整的 Manifest（LLM 加持版本）
-    ///
-    /// 使用 llama3 分析任務複雜度，比純規則更精準。
-    /// 若 LLM 不可用，自動降級回純規則。
     #[cfg(feature = "llm")]
-    pub fn from_task_with_llm(task: &str, backend: &dyn crate::model::ModelDispatcher) -> Self {
+    pub fn from_task(task: &str, backend: &dyn crate::model::ModelDispatcher) -> Self {
         Self::from_task_inner(task, true, Some(backend), "llama3")
     }
 
-    fn from_task_inner(task: &str, use_llm: bool, backend: Option<&dyn crate::model::ModelDispatcher>, model: &str) -> Self {
+    fn from_task_inner(task: &str, _use_llm: bool, _backend: Option<&dyn crate::model::ModelDispatcher>, _model: &str) -> Self {
         let now = chrono::Utc::now().to_rfc3339();
 
         // Stage 1: 確認需求 — 簡化版本，直接從 task 推斷
@@ -166,7 +162,6 @@ impl Manifest {
         #[cfg(feature = "llm")]
         let complexity = if use_llm {
             if let Some(b) = backend {
-                // 嘗試 LLM，若失敗則降級規則
                 crate::planner::ComplexityMetrics::estimate_with_llm(task, b, model)
                     .unwrap_or_else(|| crate::planner::ComplexityMetrics::estimate_from_task(task))
             } else {
@@ -189,6 +184,7 @@ impl Manifest {
 
         #[cfg(not(feature = "llm"))]
         let dispatch = DispatchDecision::from_task(task);
+
         let estimated_nodes = if dispatch.mode == WorkMode::Fork {
             Self::generate_estimated_nodes(&complexity, task)
         } else {
@@ -313,7 +309,7 @@ impl Manifest {
         questions
     }
 
-    fn generate_estimated_nodes(complexity: &ComplexityMetrics, task: &str) -> Vec<EstimatedNode> {
+    fn generate_estimated_nodes(_complexity: &ComplexityMetrics, task: &str) -> Vec<EstimatedNode> {
         let mut nodes = Vec::new();
         let task_lower = task.to_lowercase();
 
