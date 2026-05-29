@@ -13,6 +13,7 @@ env:
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -20,17 +21,19 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             ext: ''
+            artifact_suffix: 'linux-x86_64'
           - os: macos-latest
             target: aarch64-apple-darwin
             ext: ''
+            artifact_suffix: 'macos-arm64'
           - os: macos-latest
             target: x86_64-apple-darwin
             ext: ''
+            artifact_suffix: 'macos-x86_64'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             ext: '.exe'
-
-    runs-on: ${{ matrix.os }}
+            artifact_suffix: 'windows-x86_64'
 
     steps:
       - uses: actions/checkout@v4
@@ -50,75 +53,41 @@ jobs:
         shell: bash
         run: |
           mkdir -p upload
-          PLATFORM="${{ runner.os }}"
-          ARCH="${{ matrix.target }}"
           EXT="${{ matrix.ext }}"
-
+          SUFFIX="${{ matrix.artifact_suffix }}"
           echo "=== Release binaries ==="
-          ls target/release/
+          ls target/release/ | head -20
 
-          # Copy all binaries with platform-architecture suffix
           for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
             src="target/release/$bin$EXT"
-            if [ -f "$bin$EXT" ]; then
-              cp "$bin$EXT" "upload/${bin}-${PLATFORM}-${ARCH}"
-              echo "Copied (cwd) $bin$EXT"
-            elif [ -f "$src" ]; then
-              cp "$src" "upload/${bin}-${PLATFORM}-${ARCH}"
-              echo "Copied $src"
+            if [ -f "$src" ]; then
+              cp "$src" "upload/${bin}-${SUFFIX}"
+              echo "Copied $src → upload/${bin}-${SUFFIX}"
             else
-              echo "NOT FOUND: $bin$EXT"
+              echo "NOT FOUND: $src"
             fi
           done
 
           echo "=== Upload dir ==="
-          ls -la upload/ || echo "upload/ is empty"
+          ls -la upload/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
         with:
-          name: ${{ matrix.os }}-${{ matrix.target }}-bins
-          path: upload/
-          retention-days: 1
+          draft: true
+          prerelease: false
+          files: |
+            upload/*
+          body: |
+            ## Evolution OS ${{ github.ref_name }}
 
-  create-release:
-    needs: build
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.tag.outputs.version }}
+            Multi-platform binary release.
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract tag
-        id: tag
-        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Create draft release
+            ### Binaries
+            - `evolution-<suffix>` — Main executable
+            - `planner_cli-<suffix>` — CLI planner
+            - `analyze_project-<suffix>` — Project analyzer
+            - `demo_framework-<suffix>` — Framework demo
+            - `integration_demo-<suffix>` — Integration demo
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create ${{ steps.tag.outputs.version }} \
-            --title "Evolution OS ${{ steps.tag.outputs.version }}" \
-            --draft \
-            --notes ""
-          echo "release_url=https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.version }}" >> $GITHUB_OUTPUT
-
-  attach:
-    needs: [build, create-release]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: '*-bins'
-          merge-multiple: true
-
-      - name: Attach to release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ needs.create-release.outputs.version }}"
-          for f in *; do
-            [ -f "$f" ] && gh release upload "$TAG" "$f" --clobber
-          done
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
