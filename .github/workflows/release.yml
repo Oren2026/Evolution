@@ -4,32 +4,33 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (e.g., v0.1.0)'
-        required: true
-        type: string
 
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: never
+
 jobs:
-  # ── Build all platforms in parallel ──────────────────────────────
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            ext: ''
           - os: macos-latest
             target: aarch64-apple-darwin
+            ext: ''
           - os: macos-latest
             target: x86_64-apple-darwin
+            ext: ''
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            ext: '.exe'
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -42,34 +43,36 @@ jobs:
 
       - name: Build
         run: cargo build --release --features llm
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
 
       - name: Package
+        shell: bash
         run: |
           mkdir -p upload
-          PLATFORM="$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')"
+          PLATFORM="${{ runner.os }}"
           ARCH="${{ matrix.target }}"
-          echo "Packaging for PLATFORM=$PLATFORM ARCH=$ARCH"
+          EXT="${{ matrix.ext }}"
+
           echo "=== Release binaries ==="
-          ls -la target/release/ | head -20
-          echo "======================="
-          # .exe files (Windows)
+          ls target/release/
+
+          # Copy all binaries with platform-architecture suffix
           for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
-            src="target/release/$bin.exe"
-            if [ -f "$src" ]; then
+            src="target/release/$bin$EXT"
+            if [ -f "$bin$EXT" ]; then
+              cp "$bin$EXT" "upload/${bin}-${PLATFORM}-${ARCH}"
+              echo "Copied (cwd) $bin$EXT"
+            elif [ -f "$src" ]; then
               cp "$src" "upload/${bin}-${PLATFORM}-${ARCH}"
               echo "Copied $src"
+            else
+              echo "NOT FOUND: $bin$EXT"
             fi
           done
-          # Plain binaries (Unix/macOS)
-          for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
-            src="target/release/$bin"
-            if [ -f "$src" ]; then
-              cp "$src" "upload/${bin}-${PLATFORM}-${ARCH}"
-              echo "Copied $src"
-            fi
-          done
+
           echo "=== Upload dir ==="
-          ls -la upload/ || echo "upload/ is empty or missing"
+          ls -la upload/ || echo "upload/ is empty"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -78,55 +81,44 @@ jobs:
           path: upload/
           retention-days: 1
 
-  # ── Create draft release (only once) ────────────────────────────
   create-release:
     needs: build
     runs-on: ubuntu-latest
     outputs:
-      release_id: ${{ steps.create.outputs.id }}
+      version: ${{ steps.tag.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create draft release
-        id: create
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          prerelease: false
-          generate_release_notes: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract tag
+        id: tag
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-  # ── Attach artifacts to release ────────────────────────────────
-  attach-artifacts:
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ steps.tag.outputs.version }} \
+            --title "Evolution OS ${{ steps.tag.outputs.version }}" \
+            --draft \
+            --notes ""
+          echo "release_url=https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.version }}" >> $GITHUB_OUTPUT
+
+  attach:
     needs: [build, create-release]
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.os }}-${{ matrix.target }}-bins
+          pattern: '*-bins'
+          merge-multiple: true
 
       - name: Attach to release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          prerelease: false
-          files: |
-            upload/*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.create-release.outputs.version }}"
+          for f in *; do
+            [ -f "$f" ] && gh release upload "$TAG" "$f" --clobber
+          done
