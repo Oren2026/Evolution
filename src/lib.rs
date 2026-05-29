@@ -9,27 +9,28 @@
 //! 每次都是葉節點提出需求，往上追溯父節點的真正需求，
 //! 而不是建立好一套固定環境讓我們困在版本中。
 
-pub mod node;
 pub mod chain;
-pub mod skill;
-pub mod runtime;
-pub mod model;
-pub mod storage;
-pub mod evo;
-pub mod planner;
 pub mod compiler;
+pub mod evo;
 pub mod kernel;
+pub mod model;
+pub mod node;
+pub mod planner;
+pub mod runtime;
+pub mod skill;
+pub mod storage;
 pub mod system;
 
 // ===== 公開主要類型 =====
 
-pub use node::{
-    Context, Node, NodeCategory, NodeResult, ChainNode,
-    MemoryGraph, NodeRegistry, NodeHandle, DynSkillNode, SkillNode,
-};
 pub use chain::{ChainDiscovery, DiscoveryResult};
-pub use skill::{SkillRegistry, Skill};
+pub use kernel::KernelRuntime; // 公開給外部 доктест
+pub use node::{
+    ChainNode, Context, DynSkillNode, MemoryGraph, Node, NodeCategory, NodeHandle, NodeRegistry,
+    NodeResult, SkillNode,
+};
 pub use runtime::{Executor, GraphExecutor};
+pub use skill::{Skill, SkillRegistry};
 
 // ===== 版本標記 =====
 

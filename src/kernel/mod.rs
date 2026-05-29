@@ -20,6 +20,7 @@ pub use scheduler::Scheduler;
 pub use syscall::{ResultValue, SysCall, SysCallKind, SysCallResult};
 pub use system_process::{SystemProcess, NodeProcess, PlannerProcess};
 pub use executor_process::ExecutorProcess;
+pub use kernel_runtime::KernelRuntime;
 
 /// 內核 — 系統呼叫的單一進入點
 ///

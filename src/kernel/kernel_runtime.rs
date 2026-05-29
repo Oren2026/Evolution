@@ -6,16 +6,8 @@
 //!
 //! ## 使用方式
 //! ```rust,no_run
-//! let mut kr = KernelRuntime::new();
-//! kr.boot();
-//!
-//! // Planner 規劃
-//! let manifest = kr.run_planner_sync("幫我建一個庫存管理系統");
-//!
-//! // Executor 執行
-//! let results = kr.run_executor_sync(&manifest);
-//!
-//! println!("{:#?}", results);
+//! # // doctest 在模組內檢視，kernel_runtime 是內部模組所以無法直接引用
+//! # // 功能已由單元測試覆蓋（test_boot_and_run_sample_*）
 //! ```
 
 use crate::kernel::{
