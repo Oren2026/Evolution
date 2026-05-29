@@ -44,18 +44,32 @@ jobs:
         run: cargo build --release --features llm
 
       - name: Package
-        shell: bash
         run: |
           mkdir -p upload
-          PLATFORM="${{ runner.os }}"
+          PLATFORM="$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')"
           ARCH="${{ matrix.target }}"
+          echo "Packaging for PLATFORM=$PLATFORM ARCH=$ARCH"
+          echo "=== Release binaries ==="
+          ls -la target/release/ | head -20
+          echo "======================="
+          # .exe files (Windows)
           for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
             src="target/release/$bin.exe"
-            [ -f "$src" ] && cp "$src" "upload/${bin}-${PLATFORM,,}-${ARCH##*-}" || true
-            src="target/release/$bin"
-            [ -f "$src" ] && cp "$src" "upload/${bin}-${PLATFORM,,}-${ARCH##*-}" || true
+            if [ -f "$src" ]; then
+              cp "$src" "upload/${bin}-${PLATFORM}-${ARCH}"
+              echo "Copied $src"
+            fi
           done
-          ls upload/
+          # Plain binaries (Unix/macOS)
+          for bin in evolution planner_cli analyze_project demo_framework integration_demo; do
+            src="target/release/$bin"
+            if [ -f "$src" ]; then
+              cp "$src" "upload/${bin}-${PLATFORM}-${ARCH}"
+              echo "Copied $src"
+            fi
+          done
+          echo "=== Upload dir ==="
+          ls -la upload/ || echo "upload/ is empty or missing"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
