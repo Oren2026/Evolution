@@ -298,7 +298,7 @@ $ cargo run --bin planner_cli -- "幫我建一個庫存管理系統，要有前�
 1. ✅ 實現**三階段 Planner 流程**（S1確認需求 → S2分析問題 → S3規劃派工）
 2. ✅ 實現**動態分工決策**，根據複雜度指標自動選擇 Solo 或 Fork
 3. ✅ 輸出**結構化 PlannerManifest**，為下游執行系統提供可靠藍圖
-4. ✅ 建立**完整的測試覆蓋**，88 單元測試 + 6 整合測試
+4. ✅ 建立**完整的測試覆蓋**，127 單元測試 + 整合測試
 5. ✅ 完成**期末文件**，包含規格書、流程圖、展示大綱
 
 ### 7.2 設計原則總結
@@ -309,22 +309,23 @@ $ cargo run --bin planner_cli -- "幫我建一個庫存管理系統，要有前�
 
 > **「可驗證的決策」** — 每個分工決策都有 `rationale`（理由），用戶可理解並糾正。
 
-### 7.3 未來發展方向（v0.3+）
+### 7.3 已實現內容（v0.3.0+）
 
-| 方向 | 說明 |
-|------|------|
-| **Compiler 整合** | PlannerManifest → 實際 Node 調度執行，實現完整的 Plan→Execute 流程 |
-| **Visible Decision** | 完整推斷過程輸出，讓用戶看到每個指標如何計算出來 |
-| **Context Injection** | 每次對話注入完整 graph 狀態到 system prompt（让 gemma4 等小模型也能保持狀態）|
-| **多語言支援** | 任務描述支援英文，關鍵詞識別也支援英文領域標籤 |
-| **大型語言模型整合** | 接入 OpenAI / Claude 作為 Planner 的分析引擎 |
-| **學習機制** | 基於 Memory Graph，讓 Planner 能從過去的規劃結果中學習 |
+| 方向 | 狀態 | 說明 |
+|------|------|------|
+| **Compiler 整合** | ⚠️ 進行中 | PlannerManifest → 實際 Node 調度執行，kernel process 框架已建立 |
+| **Visible Decision** | ❌ 未賽現 | 完整推斷過程輸出，仍在規劃中 |
+| **Context Injection** | ❌ 未賽現 | 完整 graph 狀態注入 system prompt，仍在規劃中 |
+| **多語言支援** | ⚠️ 部分 | 英文關鍵詞部分識別，介面仍以中文為主 |
+| **大型語言模型整合** | ⚠️ 部分 | Ollama 後端已整合，OpenAI/Claude 尚未支援 |
+| **學習機制** | ❌ 未賽現 | Memory Graph 框架存在，學習推理尚未實作 |
+| **GitHub Release 自動化** | ✅ 完成 | 4 平台 CI release workflow，binaries 直接作為 Release Assets |
 
 ---
 
 ## 參考資料
 
-1. Evolution OS 源码库：`$HOME/Desktop/funnytest/evolution_os/`
+1. Evolution OS 源码库：[Oren2026/Evolution](https://github.com/Oren2026/Evolution)
 2. SemVer 规范：https://semver.org/
 3. Conventional Commits：https://www.conventionalcommits.org/
 4. Rust Programming Language：https://www.rust-lang.org/
@@ -332,4 +333,4 @@ $ cargo run --bin planner_cli -- "幫我建一個庫存管理系統，要有前�
 
 ---
 
-*本報告由 Evolution OS v0.2.0 DRAFT 版本產生，系統展示截止日期：2026-05-27*
+*本報告由 Evolution OS v0.3.1 版本產生，展示截止日期：2026-05-29*

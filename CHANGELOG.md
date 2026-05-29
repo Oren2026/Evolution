@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.1] — 2026-05-29
+
+### Added
+
+- **`index.html`** — 系統規格書 landing page（Evolution OS 介紹、Layer 架構、CLI Commands、安裝說明）
+- **整合測試**（127 tests passed, 0 failures）：
+  - `tests/graph_executor.rs` — 7 tests，MemoryGraph 核心功能覆蓋
+  - `tests/chain_discovery.rs` — 7 tests，呼叫鏈探索邊界條件
+  - `tests/runtime_executor.rs` — 7 tests，執行流程與依賴排序
+- **`.gitignore`** — 排除 `target/`，不再推送編譯產物進 repo
+- **Release Workflow v0.2.3** — 完整 GitHub Actions 自動 release：
+  - 4 平台編譯（Linux x64 / macOS x64+arm64 / Windows x64）
+  - 直接上傳 binaries 到 GitHub Release Assets（`gh release upload`）
+  - Windows 打包使用 PowerShell（`pwsh`），避免 bash 語法相容性問題
+
+### Fixed
+
+- 所有 compiler warnings（unused imports, unused variables, dead code）
+- `kernel_runtime.rs`: 移除broken doctest（無法在私有型別context中使用）
+- `node/registry.rs`: 補回 `use std::any::Any`（`as_any()` trait impl 需要）
+- git push時 `target/` 進repo導致 388MB commit → 建立 `.gitignore` + 以後再不進repo
+- Release workflow：移除 `actions/upload-artifact` / `actions/download-artifact`（CI artifacts 1天後消失）→ 改用 `gh release upload` 直接當 Release assets
+
+### Changed
+
+- `Cargo.toml` `--features llm` 移除：release build 不編譯 LLM相依（省記憶體、避免 compiler panic）
+- Release workflow：簡化為 build → package → upload 三步驟，不再有 race condition 問題
+
+---
+
 ## [0.3.0] — 2026-05-28
 
 ### Added

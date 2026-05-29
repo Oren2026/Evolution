@@ -16,21 +16,23 @@
 ### 當前版本含義
 
 ```
-0.1.0
-└─ prototype（原型階段）
+0.3.1
+└─ prototype（原型階段）— OS kernel 核心 + Planner + Release workflow
 ```
 
 ---
 
 ## Branch 模型
 
-采用 **GitHub Flow** 的簡化版本（單人開發）：
+采用 **GitHub Flow** 的简化版本（单人开发）：
 
 ```
-main ──────────────────────── 发布
+os ──────────────────────── 发布（當前主干）
   │
   └─ feature/xxx ─────────── 本地開發
 ```
+
+> 注意：`os` branch 是当前主干，非 `main`（因 Evolution OS repo 結構）
 
 ### Branch 類型
 
@@ -43,8 +45,8 @@ main ──────────────────────── �
 
 ### 合併規則
 
-- `feature/*` → `main`：**Squash Merge**（保持主干整潔）
-- `fix/*` → `main`：**Merge Commit**（保留歷史）
+| `feature/*` → `os` | **Squash Merge**（保持主干整潔） |
+| `fix/*` → `os` | **Merge Commit**（保留歷史） |
 - Commit message 格式：`[<type>] <描述>`
 
 ---
