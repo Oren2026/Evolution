@@ -58,6 +58,13 @@ enum Command {
         #[command(subcommand)]
         action: OllamaAction,
     },
+    /// 開機流程（環境 → Ollama → Model → 虛擬 OS）
+    Boot {
+        #[arg(long, help = "輸出 JSON 格式")]
+        json: bool,
+        #[arg(long, help = "詳細模式")]
+        verbose: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -109,6 +116,16 @@ fn main() {
                 }
                 OllamaAction::Start => {
                     commands::ollama_start();
+                }
+            }
+        }
+        Command::Boot { json, verbose } => {
+            if json {
+                println!("{}", commands::boot_json());
+            } else {
+                let result = commands::boot(verbose);
+                if !result.success {
+                    std::process::exit(1);
                 }
             }
         }
