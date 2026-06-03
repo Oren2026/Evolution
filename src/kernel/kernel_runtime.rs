@@ -195,7 +195,7 @@ impl KernelRuntime {
         let _pid = self.planner_pid.expect("planner not spawned");
         // 使用 Ollama 本地模型分析任務
         let backend = crate::model::OllamaBackend::new();
-        let manifest = Manifest::from_task_with_backend(task, &backend, "llama3");
+        let manifest = Manifest::from_task_with_backend(task, &backend, "gemma4:e2b");
         println!("planner manifest: {}", manifest.to_json().unwrap());
         manifest
     }
