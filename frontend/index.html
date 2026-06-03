@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>計數器 - Evolution OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+        }
+        .counter {
+            font-size: 5rem;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 0 0 20px rgba(0,210,255,0.5);
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        button {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-increment {
+            background: #00d2ff;
+            color: #1a1a2e;
+        }
+        .btn-decrement {
+            background: #ff6b6b;
+            color: #fff;
+        }
+        .btn-reset {
+            background: #4a4a4a;
+            color: #fff;
+        }
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Evolution OS 計數器</h1>
+        <div class="counter" id="count">0</div>
+        <div class="buttons">
+            <button class="btn-decrement" onclick="decrement()">- 減少</button>
+            <button class="btn-reset" onclick="reset()">重置</button>
+            <button class="btn-increment" onclick="increment()">+ 增加</button>
+        </div>
+    </div>
+    <script>
+        let count = 0;
+        const countDisplay = document.getElementById('count');
+
+        function updateDisplay() {
+            countDisplay.textContent = count;
+        }
+
+        function increment() {
+            count++;
+            updateDisplay();
+        }
+
+        function decrement() {
+            count--;
+            updateDisplay();
+        }
+
+        function reset() {
+            count = 0;
+            updateDisplay();
+        }
+    </script>
+</body>
+</html>
