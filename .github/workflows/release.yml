@@ -100,4 +100,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.create-release.outputs.tag }}
         run: |
-          for %%f in (upload\*) do gh release upload %TAG% "%%f" --repo %GITHUB_REPOSITORY%
+          for %%f in (upload\*) do gh release upload "%TAG%" "%%f" --repo %GITHUB_REPOSITORY%
