@@ -9,7 +9,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// 開機 phase 狀態
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 pub enum BootPhase {
     EnvironmentCheck,
     OllamaVerification,
@@ -19,7 +19,7 @@ pub enum BootPhase {
 }
 
 /// 開機結果
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct BootResult {
     pub success: bool,
     pub phase: BootPhase,
@@ -337,5 +337,68 @@ pub fn boot_json() -> String {
         "message": result.message,
         "details": result.details,
         "timestamp": chrono::Utc::now().to_rfc3339()
-    }).to_string()
+    })
+    .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_boot_result_success_struct() {
+        let result = BootResult {
+            success: true,
+            phase: BootPhase::Ready,
+            message: "Evolution OS ready".to_string(),
+            details: serde_json::json!({}),
+        };
+        assert!(result.success);
+        assert!(matches!(result.phase, BootPhase::Ready));
+    }
+
+    #[test]
+    fn test_boot_result_failure_struct() {
+        let result = BootResult {
+            success: false,
+            phase: BootPhase::OllamaVerification,
+            message: "Ollama 服務未運行".to_string(),
+            details: serde_json::json!({"error": "connection refused"}),
+        };
+        assert!(!result.success);
+        assert!(matches!(result.phase, BootPhase::OllamaVerification));
+    }
+
+    #[test]
+    fn test_boot_phase_all_variants() {
+        let phases = vec![
+            BootPhase::EnvironmentCheck,
+            BootPhase::OllamaVerification,
+            BootPhase::ModelVerification,
+            BootPhase::VirtualOSInit,
+            BootPhase::Ready,
+        ];
+        assert_eq!(phases.len(), 5);
+    }
+
+    #[test]
+    fn test_boot_result_json_roundtrip() {
+        let original = BootResult {
+            success: true,
+            phase: BootPhase::ModelVerification,
+            message: "gemma4:e2b ready".to_string(),
+            details: serde_json::json!({"model": "gemma4:e2b", "context_window": 4096}),
+        };
+        let json = serde_json::to_string(&original).unwrap();
+        let restored: BootResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.success, original.success);
+        assert!(matches!(restored.phase, BootPhase::ModelVerification));
+    }
+
+    #[test]
+    fn test_boot_phase_debug() {
+        let phase = BootPhase::Ready;
+        let debug = format!("{:?}", phase);
+        assert_eq!(debug, "Ready");
+    }
 }

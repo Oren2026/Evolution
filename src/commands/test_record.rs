@@ -219,3 +219,150 @@ impl Default for ManifestSummary {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_manifest_summary_default() {
+        let summary = ManifestSummary::default();
+        assert_eq!(summary.work_mode, "unknown");
+        assert_eq!(summary.reasoning_branches, 0);
+        assert_eq!(summary.domain_diversity, 0);
+        assert_eq!(summary.context_complexity, 0.0);
+        assert_eq!(summary.estimated_nodes, 0);
+        assert!(summary.domain_tags.is_empty());
+    }
+
+    #[test]
+    fn test_manifest_summary_serialization() {
+        let summary = ManifestSummary {
+            work_mode: "Solo".to_string(),
+            reasoning_branches: 3,
+            domain_diversity: 2,
+            context_complexity: 0.7,
+            estimated_nodes: 5,
+            domain_tags: vec!["frontend".to_string(), "database".to_string()],
+        };
+        let json = serde_json::to_string(&summary).unwrap();
+        assert!(json.contains("Solo"));
+        assert!(json.contains("frontend"));
+    }
+
+    #[test]
+    fn test_manifest_summary_deserialization() {
+        let json = r#"{
+            "work_mode": "Fork",
+            "reasoning_branches": 4,
+            "domain_diversity": 3,
+            "context_complexity": 0.8,
+            "estimated_nodes": 10,
+            "domain_tags": ["backend", "auth", "api"]
+        }"#;
+        let summary: ManifestSummary = serde_json::from_str(json).unwrap();
+        assert_eq!(summary.work_mode, "Fork");
+        assert_eq!(summary.reasoning_branches, 4);
+        assert_eq!(summary.context_complexity, 0.8);
+    }
+
+    #[test]
+    fn test_parse_manifest_summary_valid_json() {
+        let manifest_json = serde_json::json!({
+            "work_mode": "Solo",
+            "complexity": {
+                "reasoning_branches": 2,
+                "domain_diversity": 1,
+                "context_complexity": 0.3
+            },
+            "dispatch": {
+                "estimated_nodes": 4,
+                "domain_tags": ["html", "css"]
+            }
+        }).to_string();
+        let summary = parse_manifest_summary(&manifest_json);
+        assert_eq!(summary.work_mode, "Solo");
+        assert_eq!(summary.reasoning_branches, 2);
+        assert_eq!(summary.context_complexity, 0.3);
+        assert_eq!(summary.estimated_nodes, 4);
+        assert_eq!(summary.domain_tags, vec!["html", "css"]);
+    }
+
+    #[test]
+    fn test_parse_manifest_summary_invalid_json() {
+        let invalid = "{ not valid json at all";
+        let summary = parse_manifest_summary(invalid);
+        assert_eq!(summary.work_mode, "unknown");
+        assert_eq!(summary.reasoning_branches, 0);
+    }
+
+    #[test]
+    fn test_parse_manifest_summary_partial_json() {
+        let partial_json = serde_json::json!({
+            "work_mode": "Solo"
+        }).to_string();
+        let summary = parse_manifest_summary(&partial_json);
+        assert_eq!(summary.work_mode, "Solo");
+        assert_eq!(summary.reasoning_branches, 0);
+    }
+
+    #[test]
+    fn test_test_record_serialization() {
+        let record = TestRecord {
+            timestamp: "2026-06-03T14:00:00Z".to_string(),
+            task: "建立一個計數器網頁".to_string(),
+            manifest_summary: ManifestSummary {
+                work_mode: "Solo".to_string(),
+                reasoning_branches: 1,
+                domain_diversity: 1,
+                context_complexity: 0.2,
+                estimated_nodes: 2,
+                domain_tags: vec!["frontend".to_string()],
+            },
+            duration_ms: 1500,
+            model: "gemma4:e2b".to_string(),
+            result: "success".to_string(),
+            error: None,
+        };
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(json.contains("success"));
+        assert!(json.contains("gemma4:e2b"));
+    }
+
+    #[test]
+    fn test_test_record_with_error() {
+        let record = TestRecord {
+            timestamp: "2026-06-03T14:00:00Z".to_string(),
+            task: "測試任務".to_string(),
+            manifest_summary: ManifestSummary::default(),
+            duration_ms: 100,
+            model: "gemma4:e2b".to_string(),
+            result: "failed".to_string(),
+            error: Some("Ollama connection timeout".to_string()),
+        };
+        let json = serde_json::to_string(&record).unwrap();
+        assert!(json.contains("failed"));
+        assert!(json.contains("Ollama connection timeout"));
+    }
+
+    #[test]
+    fn test_evolution_root_path() {
+        let root = evolution_root();
+        let root_str = root.to_string_lossy();
+        assert!(root_str.contains(".evolution"));
+    }
+
+    #[test]
+    fn test_test_summary_struct() {
+        let summary = TestSummary {
+            dir_name: "2026-06-03-140000".to_string(),
+            timestamp: "2026-06-03T14:00:00Z".to_string(),
+            task: "測試".to_string(),
+            result: "success".to_string(),
+            duration_ms: 500,
+        };
+        let json = serde_json::to_string(&summary).unwrap();
+        assert!(json.contains("2026-06-03-140000"));
+        assert!(json.contains("500"));
+    }
+}
