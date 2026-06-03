@@ -36,6 +36,10 @@ path = "src/bin/demo_framework.rs"
 name = "integration_demo"
 path = "src/bin/integration_demo.rs"
 
+[[bin]]
+name = "evolution_agent"
+path = "src/bin/evolution_agent.rs"
+
 [lib]
 name = "evolution_os"
 path = "src/lib.rs"
