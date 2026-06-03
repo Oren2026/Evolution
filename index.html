@@ -118,55 +118,95 @@
 </section>
 
 <section>
-  <h2>CLI 使用方式</h2>
+  <h2>Windows 使用方式（PowerShell）</h2>
 
   <div class="example-block">
-    <h4>1. Planner CLI — 任務分工分析（主力工具）</h4>
-    <pre><code># 簡單任務 → Solo Mode
-cargo run --bin planner_cli -- "寫一個計數器網頁"
+    <h4>基本指令</h4>
+    <pre><code># 先進入下載資料夾（用 cmd 或 PowerShell）
+cd .\Downloads
 
-# 複雜任務 → Fork Mode
-cargo run --bin planner_cli -- "幫我建一個庫存管理系統，要有前端、後端、資料庫、登入功能"
-
-# 互動模式（多行輸入）
-cargo run --bin planner_cli -- --interactive</code></pre>
-    <div class="output-block">🔀 分工模式：Solo（單一節點）
-  理由：branches=1, diversity=1, complexity=0.05 → Solo（單一節點）
-  預估節點數：1
-📋 需求項目（1 項）
-❓ 待確認問題（2 項）</div>
+# 執行 Evolution
+.\evolution.exe analyze "幫我建一個庫存管理系統"
+.\evolution.exe --help</code></pre>
+    <div class="cmd-note">⚠️ 必須加上 <code>.\</code> 前綴，PowerShell 預設不從目前目錄載入命令</div>
   </div>
 
   <div class="example-block">
-    <h4>2. analyze_project — 目錄結構分析</h4>
-    <pre><code># 分析任意目錄
-cargo run --bin analyze_project -- ~/Desktop/Evolution-new/src</code></pre>
-    <div class="cmd-note">⚠️ 目前輸出較基本，適合作為 Framework 展示</div>
+    <h4>如何快速開啟命令視窗</h4>
+    <pre><code># 方法 1：在資料夾網址列輸入 cmd（最快）
+# 來到 evolution.exe 所在資料夾
+# 點擊網址列，輸入 cmd，按 Enter
+# 就會開啟一個已定位在該資料夾的命令視窗
+
+# 方法 2：在資料夾空白處 Shift+右鍵 →「在此處開啟 PowerShell 視窗」
+
+# 方法 3：在檔案總管網址列輸入 powershell，按 Enter</code></pre>
   </div>
 
   <div class="example-block">
-    <h4>3. 一鍵執行（需先 build）</h4>
-    <pre><code># 從 repo 根目錄執行
+    <h4>建立捷徑方便日後使用</h4>
+    <pre><code># 1. 對 evolution.exe 按右鍵 →「傳送到」→ 「桌面建立捷徑」
+# 2. 對桌面捷徑按右鍵 → 內容
+# 3. 在「捷徑」頁面，「目標」改為：
+#    cmd /k evolution.exe
+# 4. 以後點捷徑就會開一個命令視窗</code></pre>
+    <div class="cmd-note">💡 捷徑的「起始位置」也要設為 evolution.exe 所在的資料夾</div>
+  </div>
+
+  <div class="example-block">
+    <h4>常見用法</h4>
+    <pre><code># 分析任務複雜度（主要功能）
+.\evolution.exe analyze "建立兩個資料夾"
+.\evolution.exe analyze "幫我建一個有前端、後端、資料庫的系統"
+
+# 列出可用功能
+.\evolution.exe --help
+
+# 建立新專案
+.\evolution.exe new my-project
+
+# 互動模式
+.\evolution.exe shell</code></pre>
+  </div>
+
+  <div class="example-block">
+    <h4>使用範例輸出</h4>
+    <pre><code>.\evolution.exe analyze "庫存管理系統"
+
+# 輸出：
+🔍 分析任務：庫存管理系統
+📊 複雜度指標
+  推理分支數：1
+  領域多樣性：3
+  語境複雜度：0.15
+🔀 分工模式：Fork（多節點分工）
+  理由：diversity=3 → Fork（多節點分工）
+  預估節點數：3
+📋 需求項目（3 項）
+❓ 待確認問題（2 項）</code></pre>
+  </div>
+</section>
+
+<section>
+  <h2>macOS / Linux 使用方式（Terminal）</h2>
+
+  <div class="example-block">
+    <h4>基本指令</h4>
+    <pre><code># Clone 並進入目錄
+git clone https://github.com/Oren2026/Evolution.git
 cd ~/Desktop/Evolution-new/
 
-# 完整 build
-cargo build --release
-
-# 測試（127 tests: 106 unit + 6 integration + kernel 11 + runtime 7）
-cargo test</code></pre>
+# 執行（需要先建置）
+cargo build
+cargo run --bin planner_cli -- "幫我建一個庫存系統"
+cargo run --bin planner_cli -- "寫一個計數器網頁"</code></pre>
   </div>
 
   <div class="example-block">
-    <h4>4. 常用组合指令</h4>
-    <pre><code># 快速試用（不需 build release）
-cargo build
-cargo run --bin planner_cli -- "幫我建一個部落格系統"
-
-# 只看分工決策，不實際執行
-cargo run --bin planner_cli -- "我要電商平台"
-
-# 看完整 JSON output（pipe to jq）
-cargo run --bin planner_cli -- "庫存系統" 2>/dev/null | grep -A 100 '"dispatch"'</code></pre>
+    <h4>完整建置與測試</h4>
+    <pre><code>cargo build --release
+cargo test
+ls target/release/</code></pre>
   </div>
 </section>
 
