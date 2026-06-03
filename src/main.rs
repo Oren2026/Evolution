@@ -16,11 +16,14 @@ mod commands;
 #[command(
     name = "evolution",
     about = "Evolution OS — AI Native Development Framework",
-    version = "0.3.0"
+    version = "0.4.0"
 )]
 struct Cli {
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
+    /// 對話模式：開機 → 進入自然語言對話（無子命令時的預設行為）
+    #[arg(short, long, help = "開機並進入對話模式")]
+    interactive: bool,
 }
 
 #[derive(Subcommand)]
@@ -83,30 +86,56 @@ enum OllamaAction {
 fn main() {
     let cli = Cli::parse();
 
+    // 預設行為：無子命令時執行 boot → shell
+    if cli.command.is_none() && !cli.interactive {
+        // Boot check then enter shell automatically
+        let boot_result = commands::boot(false);
+        if !boot_result.success {
+            eprintln!("❌ 開機失敗：{}", boot_result.message);
+            std::process::exit(1);
+        }
+        println!();
+        commands::shell();
+        return;
+    }
+
+    // --interactive 或明確子命令
+    if cli.interactive {
+        let boot_result = commands::boot(false);
+        if !boot_result.success {
+            eprintln!("❌ 開機失敗：{}", boot_result.message);
+            std::process::exit(1);
+        }
+        println!();
+        commands::shell();
+        return;
+    }
+
     match cli.command {
-        Command::New { name } => {
+        None => {}, // handled above, shouldn't reach here
+        Some(Command::New { name }) => {
             commands::new_project(&name);
         }
-        Command::Analyze { task, project, json } => {
+        Some(Command::Analyze { task, project, json }) => {
             commands::analyze(&task, project.as_deref());
             if json {
                 // TODO: 輸出 JSON
                 eprintln!("(json flag not yet implemented for analyze)");
             }
         }
-        Command::Status { json } => {
+        Some(Command::Status { json }) => {
             commands::status(json);
         }
-        Command::Init { project } => {
+        Some(Command::Init { project }) => {
             commands::init(project.as_deref());
         }
-        Command::ListSkills => {
+        Some(Command::ListSkills) => {
             commands::list_skills();
         }
-        Command::Shell => {
+        Some(Command::Shell) => {
             commands::shell();
         }
-        Command::Ollama { action } => {
+        Some(Command::Ollama { action }) => {
             match action {
                 OllamaAction::Check { json } => {
                     commands::ollama_check(json);
@@ -119,7 +148,7 @@ fn main() {
                 }
             }
         }
-        Command::Boot { json, verbose } => {
+        Some(Command::Boot { json, verbose }) => {
             if json {
                 println!("{}", commands::boot_json());
             } else {
