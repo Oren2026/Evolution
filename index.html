@@ -39,7 +39,7 @@
   .module-item { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px 16px; font-size: 0.9em; }
   .module-item span { color: #79c0ff; font-weight: 600; margin-right: 8px; }
   .cli-table { width: 100%; border-collapse: collapse; }
-  .cli-table th { text-align: left; padding: 10px 14px; background: #161b22; border-bottom: 1px solid #30363d; color: #79c0ff; font-size: 0.85emen; }
+  .cli-table th { text-align: left; padding: 10px 14px; background: #161b22; border-bottom: 1px solid #30363d; color: #79c0ff; font-size: 0.85em; }
   .cli-table td { padding: 10px 14px; border-bottom: 1px solid #21262d; font-size: 0.9em; }
   .cli-table td:first-child { color: #e6edf3; font-family: monospace; }
   .cli-table tr:hover td { background: #161b22; }
@@ -49,6 +49,10 @@
   .step-content h4 { font-size: 1em; margin-bottom: 4px; }
   .step-content p { font-size: 0.88em; color: #8b949e; }
   footer { text-align: center; padding: 40px 20px; color: #484f58; font-size: 0.85em; border-top: 1px solid #21262d; margin-top: 60px; }
+  .example-block { margin-bottom: 24px; }
+  .example-block h4 { color: #ffa657; margin-bottom: 8px; font-size: 0.95em; }
+  .output-block { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px 16px; font-size: 0.85em; color: #8b949e; margin-top: 8px; white-space: pre-wrap; }
+  .cmd-note { font-size: 0.8em; color: #6e7681; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -58,7 +62,7 @@
   <p>意圖驅動的多平台軟體編譯框架</p>
   <div style="margin-top:16px">
     <span class="badge badge-rust">Rust</span>
-    <span class="badge badge-stable">Stable</span>
+    <span class="badge badge-stable">v0.3.1</span>
     <span class="badge" style="background:#1a2a3a;color:#79c0ff;border:1px solid #30363d">MIT License</span>
   </div>
 </header>
@@ -67,112 +71,167 @@
 
 <section>
   <h2>概述</h2>
-  <p>Evolution OS 是一個意圖驅動（Intent-driven）的軟體編譯框架，設計用於處理跨平台專案的自動化建置、分析與優化。核心思想是讓系統「理解你想要什麼，而不是你命令它做什麼」。</p>
-  <p>通過自然語言輸入，系統自動推理模組依賴關係、重構優先級、平台兼容性，輸出可直接部署的編譯產物。</p>
+  <p>Evolution OS 是一個<strong>意圖驅動（Intent-driven）</strong>的軟體工程 Framework。核心問題：<em>如何讓 AI 在開始實作之前，先理解任務的複雜度，自動決定分工策略，並在過程中保持決策的可解釋性？</em></p>
+  <p>設計原則：<strong>問題未確認不實作</strong>、<strong>資訊重構複雜度驅動分工</strong>、<strong>邏輯上的遞迴</strong>（Planner 輸出優化下次輸入結構）、<strong>可驗證的決策</strong>。</p>
 </section>
 
 <section>
-  <h2>Layer 0→3 架構</h2>
-  <p>系統採用四層漸進式決策架構：</p>
+  <h2>Layer 0→3 漸進式決策架構</h2>
   <div class="layer-grid">
     <div class="layer-card L0">
       <span class="tag">Layer 0</span>
       <h3>意圖層 Intent</h3>
-      <p>解析使用者輸入意圖，轉換為系統內部可處理的任務樹。</p>
+      <p>解析自然語言輸入，提取領域標籤與複雜度因子。</p>
     </div>
     <div class="layer-card L1">
       <span class="tag">Layer 1</span>
-      <h3>分類層 Categorization</h3>
-      <p>將意圖分類為編譯、重構、分析等類別，選擇對應的處理管線。</p>
+      <h3>複雜度分析 Categorization</h3>
+      <p>計算 branches、diversity、complexity 三維指標。</p>
     </div>
     <div class="layer-card L2">
       <span class="tag">Layer 2</span>
-      <h3>路由層 Routing</h3>
-      <p>分散式節點路由：各模組在本地做決策，不依賴中央強節點。</p>
+      <h3>分工決策 Routing</h3>
+      <p>根據複雜度動態選擇 Solo（單節點）或 Fork（多節點分工）。</p>
     </div>
     <div class="layer-card L3">
       <span class="tag">Layer 3</span>
       <h3>執行層 Execution</h3>
-      <p>實際執行編譯、建置分析、產出最終結果。</p>
+      <p>PlannerManifest 驅動下游 Compiler / Executor。</p>
     </div>
   </div>
 </section>
 
 <section>
-  <h2>Core Modules</h2>
+  <h2>Core Modules（src/）</h2>
   <div class="module-grid">
-    <div class="module-item"><span>kernel</span> Runtime 核心與執行引擎</div>
-    <div class="module-item"><span>compiler</span> 多平台編譯器前端</div>
-    <div class="module-item"><span>executor</span> 任務執行器與工作緒池</div>
-    <div class="module-item"><span>planner</span> 任務規劃與依賴解析</div>
-    <div class="module-item"><span>node</span> 節點暫存器與工廠</div>
-    <div class="module-item"><span>chain</span> 連鎖發現與拓撲排序</div>
-    <div class="module-item"><span>graph</span> 依賴圖建構與查詢</div>
-    <div class="module-item"><span>system</span> 系統安裝與環境偵測</div>
-    <div class="module-item"><span>model</span> LLM 後端整合</div>
-    <div class="module-item"><span>registry</span> 全域節點註冊表</div>
+    <div class="module-item"><span>kernel/</span> OS 核心：Process / Mailbox / Scheduler / ProcessTable / SysCall / SystemProcess</div>
+    <div class="module-item"><span>planner/</span> 任務規劃：stages.rs / decision.rs / manifest.rs</div>
+    <div class="module-item"><span>runtime/</span> 依賴圖執行引擎（GraphExecutor）</div>
+    <div class="module-item"><span>node/</span> 節點抽象：SkillNode / DynSkillNode / MemoryGraph / Registry</div>
+    <div class="module-item"><span>model/</span> AI 後端派遣（Ollama 支援）</div>
+    <div class="module-item"><span>storage/</span> JSON 持久化</div>
+    <div class="module-item"><span>chain/</span> 呼叫鏈探索（葉→根 BFS）</div>
+    <div class="module-item"><span>skill/</span> 技能實現（filesystem.rs 等）</div>
+    <div class="module-item"><span>compiler/</span> 多平台編譯器前端</div>
+    <div class="module-item"><span>commands/</span> CLI 子命令：analyze / new_project / list_skills / shell</div>
   </div>
 </section>
 
 <section>
-  <h2>System Processes</h2>
-  <div class="module-grid">
-    <div class="module-item"><span>init</span> 初始化系統與節點圖</div>
-    <div class="module-item"><span>build</span> 觸發多平台建置流程</div>
-    <div class="module-item"><span>analyze</span> 專案結構分析</div>
-    <div class="module-item"><span>replan</span> 動態重規劃執行策略</div>
-    <div class="module-item"><span>install</span> 系統級工具鏈安裝</div>
-    <div class="module-item"><span>report</span> 建置報告生成</div>
+  <h2>CLI 使用方式</h2>
+
+  <div class="example-block">
+    <h4>1. Planner CLI — 任務分工分析（主力工具）</h4>
+    <pre><code># 簡單任務 → Solo Mode
+cargo run --bin planner_cli -- "寫一個計數器網頁"
+
+# 複雜任務 → Fork Mode
+cargo run --bin planner_cli -- "幫我建一個庫存管理系統，要有前端、後端、資料庫、登入功能"
+
+# 互動模式（多行輸入）
+cargo run --bin planner_cli -- --interactive</code></pre>
+    <div class="output-block">🔀 分工模式：Solo（單一節點）
+  理由：branches=1, diversity=1, complexity=0.05 → Solo（單一節點）
+  預估節點數：1
+📋 需求項目（1 項）
+❓ 待確認問題（2 項）</div>
+  </div>
+
+  <div class="example-block">
+    <h4>2. analyze_project — 目錄結構分析</h4>
+    <pre><code># 分析任意目錄
+cargo run --bin analyze_project -- ~/Desktop/Evolution-new/src</code></pre>
+    <div class="cmd-note">⚠️ 目前輸出較基本，適合作為 Framework 展示</div>
+  </div>
+
+  <div class="example-block">
+    <h4>3. 一鍵執行（需先 build）</h4>
+    <pre><code># 從 repo 根目錄執行
+cd ~/Desktop/Evolution-new/
+
+# 完整 build
+cargo build --release
+
+# 測試（127 tests: 106 unit + 6 integration + kernel 11 + runtime 7）
+cargo test</code></pre>
+  </div>
+
+  <div class="example-block">
+    <h4>4. 常用组合指令</h4>
+    <pre><code># 快速試用（不需 build release）
+cargo build
+cargo run --bin planner_cli -- "幫我建一個部落格系統"
+
+# 只看分工決策，不實際執行
+cargo run --bin planner_cli -- "我要電商平台"
+
+# 看完整 JSON output（pipe to jq）
+cargo run --bin planner_cli -- "庫存系統" 2>/dev/null | grep -A 100 '"dispatch"'</code></pre>
   </div>
 </section>
 
 <section>
-  <h2>CLI Commands</h2>
+  <h2>分工決策閾值</h2>
   <table class="cli-table">
     <thead>
-      <tr><th>Command</th><th>說明</th></tr>
+      <tr><th>指標</th><th>Solo 條件</th><th>Fork 條件</th></tr>
     </thead>
     <tbody>
-      <tr><td>evolution analyze</td><td>分析專案結構並生成依賴圖</td></tr>
-      <tr><td>evolution build</td><td>觸發多平台編譯流程</td></tr>
-      <tr><td>evolution plan</td><td>顯示執行計畫而不實際執行</td></tr>
-      <tr><td>evolution init</td><td>初始化新專案或現有專案</td></tr>
-      <tr><td>planner_cli manifest</td><td>生成 Planner 意圖描述</td></tr>
-      <tr><td>analyze_project</td><td>分析目錄結構與模組關係</td></tr>
-      <tr><td>demo_framework</td><td>展示框架核心功能範例</td></tr>
-      <tr><td>integration_demo</td><td>跨模組整合測試演示</td></tr>
+      <tr><td>reasoning_branches</td><td>≤ 2</td><td>≥ 3</td></tr>
+      <tr><td>domain_diversity</td><td>≤ 1</td><td>≥ 2</td></tr>
+      <tr><td>context_complexity</td><td>≤ 0.6</td><td>> 0.6</td></tr>
     </tbody>
   </table>
+  <p style="margin-top:12px">三者之一滿足就觸發 Fork Mode。</p>
 </section>
 
 <section>
-  <h2>建置方式</h2>
-  <pre><code>cargo build --release
-cargo test --no-default-features</code></pre>
-  <p>需要 Rust 1.70+。建議使用 <code>--no-default-features</code> 避免編譯期間的 LLM 後端依賴（可在 runtime 透過設定啟用）。</p>
+  <h2>PlannerManifest 輸出格式</h2>
+  <pre><code>{
+  "stage": "Confirming",
+  "converged": false,
+  "complexity": {
+    "reasoning_branches": 1,
+    "domain_diversity": 4,
+    "context_complexity": 0.168
+  },
+  "work_mode": "Fork",
+  "dispatch": {
+    "mode": "Fork",
+    "rationale": "branches=1, diversity=4, complexity=0.17 → Fork（多節點分工）",
+    "estimated_nodes": 3,
+    "domain_tags": ["database", "frontend", "backend", "auth"]
+  },
+  "questions": [
+    { "id": "q-001", "question": "技術栈偏好？", "impact": "影響架構設計" },
+    ...
+  ]
+}</code></pre>
 </section>
 
 <section>
-  <h2>安裝說明</h2>
+  <h2>安裝與建置</h2>
   <div class="install-step">
     <div class="step-num">1</div>
     <div class="step-content">
       <h4>Clone 本專案</h4>
-      <p><code>git clone https://github.com/Oren2026/Evolution.git</code></p>
+      <p><code>git clone https://github.com/Oren2026/Evolution.git</code><br>
+      <code>cd ~/Desktop/Evolution-new/</code></p>
     </div>
   </div>
   <div class="install-step">
     <div class="step-num">2</div>
     <div class="step-content">
-      <h4>編譯</h4>
+      <h4>建置</h4>
       <p><code>cargo build --release</code></p>
+      <p class="cmd-note">建置產物：<code>target/release/evolution</code>、<code>target/release/planner_cli</code>、<code>target/release/analyze_project</code></p>
     </div>
   </div>
   <div class="install-step">
     <div class="step-num">3</div>
     <div class="step-content">
-      <h4>執行</h4>
-      <p>產物位於 <code>target/release/</code> 目錄下，包含 <code>evolution</code> 主程式及多個 CLI 工具。</p>
+      <h4>執行 Planner</h4>
+      <p><code>cargo run --bin planner_cli -- "你的任務描述"</code></p>
     </div>
   </div>
 </section>
@@ -180,7 +239,8 @@ cargo test --no-default-features</code></pre>
 </div>
 
 <footer>
-  <p>Evolution OS · <a href="https://github.com/Oren2026/Evolution">GitHub</a> · MIT License</p>
+  <p>Evolution OS v0.3.1 · <a href="https://github.com/Oren2026/Evolution">GitHub</a> · MIT License</p>
+  <p style="margin-top:8px">106 unit tests + 6 integration tests + 7 runtime tests</p>
 </footer>
 
 </body>
