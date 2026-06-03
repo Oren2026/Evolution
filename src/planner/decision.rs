@@ -11,7 +11,6 @@
 
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "llm")]
 use crate::model::{ModelDispatcher, ModelRequest};
 
 /// 複雜度評估結果
@@ -97,7 +96,6 @@ impl ComplexityMetrics {
     /// 使用 LLM（llama3）分析任務複雜度
     ///
     /// 失敗時自動回傳 None，不影響主流程。
-    #[cfg(feature = "llm")]
     pub fn estimate_with_llm(
         task: &str,
         backend: &dyn ModelDispatcher,
@@ -141,7 +139,6 @@ Output ONLY this exact JSON, nothing else:
     }
 
     /// 從 LLM 回應中提取 JSON（使用正則表達式）
-    #[cfg(feature = "llm")]
     fn extract_json(text: &str) -> Option<String> {
         use regex::Regex;
 

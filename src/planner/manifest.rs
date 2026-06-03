@@ -145,12 +145,18 @@ impl Manifest {
         Self::from_task_inner(task, false, None, "llama3")
     }
 
+    /// 使用指定的 ModelDispatcher（LLM）從任務描述產生完整的 Manifest
+    /// 這是主要的 AI 分析入口，繞過 feature flag
+    pub fn from_task_with_backend(task: &str, backend: &dyn crate::model::ModelDispatcher, model: &str) -> Self {
+        Self::from_task_inner(task, true, Some(backend), model)
+    }
+
     #[cfg(feature = "llm")]
-    pub fn from_task(task: &str, backend: &dyn crate::model::ModelDispatcher) -> Self {
+    pub fn from_task_llm(task: &str, backend: &dyn crate::model::ModelDispatcher) -> Self {
         Self::from_task_inner(task, true, Some(backend), "llama3")
     }
 
-    fn from_task_inner(task: &str, _use_llm: bool, _backend: Option<&dyn crate::model::ModelDispatcher>, _model: &str) -> Self {
+    fn from_task_inner(task: &str, use_llm: bool, backend: Option<&dyn crate::model::ModelDispatcher>, model: &str) -> Self {
         let now = chrono::Utc::now().to_rfc3339();
 
         // Stage 1: 確認需求 — 簡化版本，直接從 task 推斷
@@ -158,8 +164,7 @@ impl Manifest {
         let questions = Self::generate_questions(task);
         let converged = questions.is_empty();
 
-        // Stage 2: 分析問題
-        #[cfg(feature = "llm")]
+        // Stage 2: 分析問題 — 嘗試使用 LLM，若失敗則 fallback 到規則版本
         let complexity = if use_llm {
             if let Some(b) = backend {
                 crate::planner::ComplexityMetrics::estimate_with_llm(task, b, model)
@@ -171,19 +176,13 @@ impl Manifest {
             crate::planner::ComplexityMetrics::estimate_from_task(task)
         };
 
-        #[cfg(not(feature = "llm"))]
-        let complexity = crate::planner::ComplexityMetrics::estimate_from_task(task);
-
-        // Stage 3: 派工決策
-        #[cfg(feature = "llm")]
+        // Stage 3: 派工決策 — 使用 LLM 提取領域標籤，若失敗則 fallback
         let dispatch = if use_llm {
-            DispatchDecision::from_metrics(&complexity, Self::extract_domain_tags_llm(task, backend, model))
+            let tags = Self::extract_domain_tags_llm(task, backend, model);
+            DispatchDecision::from_metrics(&complexity, tags)
         } else {
             DispatchDecision::from_task(task)
         };
-
-        #[cfg(not(feature = "llm"))]
-        let dispatch = DispatchDecision::from_task(task);
 
         let estimated_nodes = if dispatch.mode == WorkMode::Fork {
             Self::generate_estimated_nodes(&complexity, task)
@@ -406,7 +405,6 @@ impl Manifest {
     }
 
     /// 使用 LLM 從任務描述提取領域標籤
-    #[cfg(feature = "llm")]
     fn extract_domain_tags_llm(
         task: &str,
         backend: Option<&dyn crate::model::ModelDispatcher>,

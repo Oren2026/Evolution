@@ -190,11 +190,22 @@ impl KernelRuntime {
     // ─── 直接執行（sync 版本）──────────────────────────────────
 
     /// 直接執行 Planner（sync 版本，不走排程器）
+    /// 使用 Ollama 本地模型分析任務複雜度並產生藍圖
     pub fn run_planner_sync(&mut self, task: &str) -> Manifest {
         let _pid = self.planner_pid.expect("planner not spawned");
-        // 直接同步執行：使用 Manifest::from_task 生成藍圖
-        let manifest = Manifest::from_task(task);
+        // 使用 Ollama 本地模型分析任務
+        let backend = crate::model::OllamaBackend::new();
+        let manifest = Manifest::from_task_with_backend(task, &backend, "llama3");
         println!("planner manifest: {}", manifest.to_json().unwrap());
+        manifest
+    }
+
+    /// 直接執行 Planner（sync 版本，無 LLM fallback）
+    /// 任務太簡單或 Ollama 不可用時使用純規則版本
+    pub fn run_planner_sync_fallback(&mut self, task: &str) -> Manifest {
+        let _pid = self.planner_pid.expect("planner not spawned");
+        let manifest = Manifest::from_task(task);
+        println!("planner manifest (rule-based): {}", manifest.to_json().unwrap());
         manifest
     }
 
