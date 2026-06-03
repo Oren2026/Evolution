@@ -7,9 +7,12 @@ pub mod shell;
 pub mod status;
 pub mod init;
 
+pub mod ollama_check;
+
 pub use new_project::new_project;
 pub use analyze::analyze;
 pub use list_skills::list_skills;
 pub use shell::shell;
 pub use status::status;
 pub use init::init;
+pub use ollama_check::{check as ollama_check, install as ollama_install, start as ollama_start};

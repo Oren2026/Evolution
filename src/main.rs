@@ -53,6 +53,24 @@ enum Command {
     ListSkills,
     /// 互動式 Shell
     Shell,
+    /// Ollama 管理（檢查/安裝/啟動）
+    Ollama {
+        #[command(subcommand)]
+        action: OllamaAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum OllamaAction {
+    /// 檢查 Ollama 狀態
+    Check {
+        #[arg(long, help = "輸出 JSON 格式")]
+        json: bool,
+    },
+    /// 安裝預設模型（llama3）
+    Install,
+    /// 啟動 Ollama 服務
+    Start,
 }
 
 fn main() {
@@ -80,6 +98,19 @@ fn main() {
         }
         Command::Shell => {
             commands::shell();
+        }
+        Command::Ollama { action } => {
+            match action {
+                OllamaAction::Check { json } => {
+                    commands::ollama_check(json);
+                }
+                OllamaAction::Install => {
+                    commands::ollama_install();
+                }
+                OllamaAction::Start => {
+                    commands::ollama_start();
+                }
+            }
         }
     }
 }
