@@ -14,6 +14,7 @@ use std::process::Command;
 use std::time::Instant;
 
 use evolution_os::model::{ModelDispatcher, ModelRequest, OllamaBackend};
+use evolution_os::system::{StateBoard, StateBoardStorage, TaskStage};
 use crate::commands::intent_router::IntentRouter;
 
 /// 對話系統提示詞
@@ -164,11 +165,51 @@ fn classify_intent(backend: &OllamaBackend, input: &str) -> String {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Evolution CLI 執行器
+// StateBoard helpers
 // ═══════════════════════════════════════════════════════════════════
 
+fn evolution_root() -> std::path::PathBuf {
+    std::env::var("EVOLUTION_ROOT")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| {
+            dirs::home_dir()
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+                .join(".evolution")
+        })
+}
+
+fn board_storage_path() -> std::path::PathBuf {
+    evolution_root().join("state_board.json")
+}
+
+fn load_board() -> StateBoard {
+    let path = board_storage_path();
+    let storage = StateBoardStorage::new(&path.to_string_lossy());
+    storage.load().unwrap_or_else(|_| StateBoard::new())
+}
+
+fn save_board(board: &StateBoard) {
+    let path = board_storage_path();
+    let storage = StateBoardStorage::new(&path.to_string_lossy());
+    let _ = storage.save(board);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Evolution CLI 執行器（帶 StateBoard 追蹤）
+// ═══════════════════════════════════════════════════════════════════
+
+/// 執行 Evolution CLI 並將結果寫入 StateBoard
 fn execute_evolution_cli(cli: &str) -> String {
-    // cli 格式："evolution board status" / "evolution analyze xxx"
+    // 解析任務名稱（從 cli 推斷）
+    let task_name = extract_task_name_from_cli(cli);
+
+    // 建立或取得 StateBoard 任務
+    let mut board = load_board();
+    let task_id = board.create_task(task_name.clone());
+    board.update_stage(&task_id, TaskStage::Executing, None, None);
+    save_board(&board);
+
+    // 執行 CLI
     let parts: Vec<&str> = cli.trim_start_matches("evolution").trim().split_whitespace().collect();
     if parts.is_empty() {
         return "❌ 無效的命令".to_string();
@@ -179,21 +220,45 @@ fn execute_evolution_cli(cli: &str) -> String {
         .args(&parts)
         .output();
 
+    // 更新 StateBoard 任務階段
+    let mut board = load_board();
     match output {
-        Ok(out) => {
+        Ok(out) if out.status.success() => {
+            board.update_stage(&task_id, TaskStage::Done, None, None);
+            save_board(&board);
             let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            if out.status.success() {
-                if stdout.trim().is_empty() {
-                    stderr.trim().to_string()
-                } else {
-                    stdout.trim().to_string()
-                }
+            if stdout.trim().is_empty() {
+                String::from_utf8_lossy(&out.stderr).trim().to_string()
             } else {
-                format!("❌ 命令執行失敗\n{}\n{}", stdout.trim(), stderr.trim())
+                stdout.trim().to_string()
             }
         }
-        Err(e) => format!("❌ 無法執行命令：{}", e),
+        Ok(out) => {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let note = Some(format!("執行失敗: {}", stderr.trim()));
+            board.update_stage(&task_id, TaskStage::Blocked, note, None);
+            save_board(&board);
+            format!("❌ 命令執行失敗\n{}", stderr.trim())
+        }
+        Err(e) => {
+            let note = Some(format!("無法執行: {}", e));
+            board.update_stage(&task_id, TaskStage::Blocked, note, None);
+            save_board(&board);
+            format!("❌ 無法執行命令：{}", e)
+        }
+    }
+}
+
+/// 從 CLI 字串推斷任務名稱（用於 StateBoard 追蹤）
+fn extract_task_name_from_cli(cli: &str) -> String {
+    // cli 格式："evolution analyze xxx" / "evolution board status" / "evolution new project"
+    let parts: Vec<&str> = cli.trim_start_matches("evolution").trim().split_whitespace().collect();
+    if parts.len() >= 2 {
+        format!("{} {}", parts[0], parts[1])
+    } else if parts.len() == 1 {
+        parts[0].to_string()
+    } else {
+        "未知任務".to_string()
     }
 }
 
