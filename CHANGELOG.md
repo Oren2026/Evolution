@@ -6,6 +6,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.6.0] — 2026-06-05
+
+### Added
+
+- **`EventGenerator` — LLM 驅動的系統事件解讀**：
+  - `src/system/event_generator.rs`（126 lines）
+  - `interpret_transition(task_name, from_stage, to_stage, backend)` — 階段轉換時使用 gemma4:e2b 生成事件描述
+  - `interpret_transition_with_model()` — 指定模型版本
+  - 回傳 `Option<String>`，失敗時 caller 可 fallback 到規則版本
+
+- **`EventEntry.interpretation` 欄位**：
+  - `src/system/state_board.rs` — EventEntry 新增 `interpretation: Option<String>` 欄位
+  - `with_interpretation()` builder helper
+  - `update_stage()` 在 Done/Blocked 時自動呼叫 EventGenerator 附加 LLM 解讀
+
+- **`StateBoard::understand_events()` — 主動理解**：
+  - 讀取所有未送達事件 + 任務狀態
+  - 送入 LLM 生成繁體中文系統建議（100-200 字）
+  - 無事件時快速回覆「沒有待處理事件。系統正常運行。」
+  - 需要明確傳入 `backend: &dyn ModelDispatcher`（explicit API）
+
+- **`Shell → StateBoard 追蹤`（`execute_evolution_cli()` 重構）：
+  - `src/commands/shell.rs` — 執行前建立 TaskEntry（Executing）
+  - 執行成功 → Done，失敗 → Blocked（帶錯誤 note）
+  - StateBoard 自動持久化到 `~/.evolution/state_board.json`
+  - `extract_task_name_from_cli()` 從 CLI 字串推斷任務名
+
+### Changed
+
+- **`StateBoard::update_stage()` 簽名**：第四參數 `backend: Option<&dyn ModelDispatcher>`
+- **`src/system/state_board_storage.rs` 測試**：更新所有 `update_stage()` 呼叫為 4 參數
+- **`src/lib.rs` / `src/system/mod.rs`**：export EventGenerator
+- **`EventGenerator::default_model()`**：新增 public accessor（從 private 提升）
+
+### Test Status
+
+- `cargo build`：通過（~20 warnings，0 errors）
+- `cargo test`：全部通過（lib + 2 bins + doc-tests）
+
+---
+
 ## [0.5.0] — 2026-06-05
 
 ### Added
