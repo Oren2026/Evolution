@@ -6,8 +6,10 @@ pub mod checker;
 pub mod installer;
 pub mod state_board;
 pub mod state_board_storage;
+pub mod event_generator;
 
 pub use checker::{CheckStatus, SystemReport};
 pub use installer::Installer;
 pub use state_board::{BoardSummary, EventEntry, EventLevel, StateBoard, StateBoardSnapshot, TaskEntry, TaskStage};
 pub use state_board_storage::StateBoardStorage;
+pub use event_generator::EventGenerator;

@@ -29,7 +29,7 @@ pub use node::{
 };
 pub use runtime::{Executor, GraphExecutor};
 pub use skill::{Skill, SkillRegistry};
-pub use system::{StateBoard, StateBoardSnapshot, StateBoardStorage, TaskEntry, TaskStage, BoardSummary, EventEntry, EventLevel};
+pub use system::{StateBoard, StateBoardSnapshot, StateBoardStorage, TaskEntry, TaskStage, BoardSummary, EventEntry, EventLevel, EventGenerator};
 
 // ===== 版本標記 =====
 
