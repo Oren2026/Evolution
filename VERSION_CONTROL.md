@@ -16,9 +16,20 @@
 ### 當前版本含義
 
 ```
-0.3.1
-└─ prototype（原型階段）— OS kernel 核心 + Planner + Release workflow
+0.3.2
+└─ prototype（原型階段）— OS Kernel + Shell 真實命令執行
 ```
+
+---
+
+## v0.4 預定工作
+
+|| 項目 | 說明 | 優先級 |
+|------|------|--------|-------|
+| Framework depth | 使用者尚未確認 framework 類型 | 待確認 |
+| Planner → Executor 串接 | `analyze` CLI 現在是假的，需要真的呼叫 `KernelRuntime` | 高 |
+| LLM 真的被使用 | Manifest 分析現在是 keyword counting，需要真的呼叫 Ollama | 中 |
+| Model 分流 | 複雜推理用 `mistral:7b`，簡單分類用 `gemma4:e2b` | 低 |
 
 ---
 

@@ -1,8 +1,8 @@
 # Evolution OS — 系統規格書
 # Evolution Compiler — 軟體工程Framework
 
-**版本**: v0.3.0 (DRAFT)
-**日期**: 2026-05-28
+**版本**: v0.5.0
+**日期**: 2026-06-05
 **類型**: 學期專案成果文件
 
 ---
@@ -396,8 +396,58 @@ pub trait SystemProcess: Send + Sync {
 | `kernel` | `mod.rs` + 附檔 | OS 系統核心：Process / Mailbox / Scheduler / ProcessTable / SysCall / SystemProcess |
 | `storage` | `json_storage.rs` | Graph 持久化（JSON） |
 | `chain` | `discovery.rs` | 呼叫鏈探索（葉→根 BFS） |
+| `system` | `mod.rs` + 附檔 | 系統附屬設施：StateBoard、StateBoardStorage |
+| `commands` | `mod.rs` + 附檔 | CLI 命令實作：board、intent_router、shell、status、init、new_project、analyze、list_skills、ollama_check、boot 等 |
 
-### 5.2 Planner CLI（src/bin/planner_cli.rs）
+### 5.2 CLI Commands
+
+| 命令 | 說明 |
+|------|------|
+| `evolution new <name>` | 建立新 Evolution 專案 |
+| `evolution analyze "<task>"` | 分析任務複雜度，輸出 Manifest |
+| `evolution board` | 顯示任務進度概覽 |
+| `evolution board events` | 顯示未送達的主動事件 |
+| `evolution board <uuid>` | 顯示單一任務詳情 |
+| `evolution board clear` | 清除已完成任務 |
+| `evolution status` | 顯示 Ollama 模型與專案狀態 |
+| `evolution shell` | 互動式 Shell（自然語言命令路由） |
+| `evolution init [project]` | 生成專案概述文件 |
+| `evolution list-skills` | 列出可用技能 |
+| `evolution boot [--check-only]` | 四階段開機流程 / 環境檢查 |
+| `evolution ollama check` | Ollama 健康檢查 |
+| `evolution ollama install` | 安裝預設模型（llama3） |
+| `evolution ollama start` | 啟動 Ollama 服務 |
+
+### 5.3 IntentCommandDB — 意圖命令資料庫
+
+`src/commands/intent_router.rs` 實現自然語言 → 系統命令映射：
+
+```
+用戶輸入：「幫我看一下進度」
+       ↓
+IntentRouter.route_keyword() — 關鍵字匹配
+       ↓ (fallback)
+IntentRouter.route_with_model() — gemma4:e2b LLM 分類
+       ↓
+匹配到 board_status → 輸出 CLI: "evolution board"
+```
+
+資料模型：
+- `IntentCommandDB`：13 個內建命令（board/planner/system/dev/query）
+- `CommandDef`：id、category、aliases、description、cli、slots、examples
+- `IntentMatch`：matched command_id、confidence score、extracted slots
+
+### 5.4 StateBoard — 系統狀態表
+
+`src/system/state_board.rs` + `state_board_storage.rs`：
+
+- `TaskEntry`：id、name、stage（Pending/Planning/Executing/Done/Blocked）、history、metadata
+- `PresenceEntry`：系統心跳追蹤
+- `EventEntry`：主動事件佇列（Info/Warning/Done/NeedsUser 等級）
+- `BoardSummary`：快速摘要（total、by_stage、undelivered_events）
+- 持久化至 `~/.evolution/state_board.json`
+
+### 5.5 Planner CLI（src/bin/planner_cli.rs）
 
 兩種使用模式：
 
@@ -413,7 +463,7 @@ cargo run --bin planner_cli -- --interactive
 - 終端摘要（複雜度指標、分工模式、需求項目）
 - 完整 JSON Manifest
 
-### 5.3 測試結構
+### 5.6 測試結構
 
 ```
 tests/
@@ -513,6 +563,8 @@ cargo run --bin planner_cli -- "幫我建一個庫存管理系統"  # Fork
 
 | 版本 | 日期 | 內容 |
 |------|------|------|
+| v0.3.2 | 2026-06-03 | Shell mode 真實命令執行：`handle_system`（`open` 開檔）、`handle_evolution`（真正呼叫 CLI 命令）；移除 `opencode` intent 分支 |
+| v0.3.1 | 2026-05-29 | index.html、整合測試（127 tests）、`.gitignore`、Release Workflow v0.2.3 |
 | v0.3.0 | 2026-05-28 | OS System 核心：kernel module（Process/Mailbox/Scheduler/ProcessTable/SysCall/SystemProcess），sync Rust，11 tests passed |
 | v0.2.0 | 2026-05-27 | 期末文件：SPEC.md 規格書 + REPORT.md 報告 + CHANGELOG.md + VERSION_CONTROL.md |
 | v0.1.0 | 2026-05-27 | Planner 核心：stages + decision + manifest + CLI + 整合測試 |

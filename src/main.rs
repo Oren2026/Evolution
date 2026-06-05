@@ -54,6 +54,11 @@ enum Command {
     },
     /// 列出可用技能
     ListSkills,
+    /// 狀態看板（任務進度、主動事件）
+    Board {
+        #[arg(help = "board 子命令：status/events/clear 或任務 UUID", default_value = "")]
+        args: Vec<String>,
+    },
     /// 互動式 Shell
     Shell,
     /// Ollama 管理（檢查/安裝/啟動）
@@ -154,6 +159,15 @@ fn main() {
             } else {
                 let result = commands::boot(verbose);
                 if !result.success {
+                    std::process::exit(1);
+                }
+            }
+        }
+        Some(Command::Board { args }) => {
+            match commands::board(&args) {
+                Ok(output) => println!("{}", output),
+                Err(e) => {
+                    eprintln!("❌ {}", e);
                     std::process::exit(1);
                 }
             }

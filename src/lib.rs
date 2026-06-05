@@ -21,8 +21,6 @@ pub mod skill;
 pub mod storage;
 pub mod system;
 
-// ===== 公開主要類型 =====
-
 pub use chain::{ChainDiscovery, DiscoveryResult};
 pub use kernel::KernelRuntime; // 公開給外部 доктест
 pub use node::{
@@ -31,6 +29,7 @@ pub use node::{
 };
 pub use runtime::{Executor, GraphExecutor};
 pub use skill::{Skill, SkillRegistry};
+pub use system::{StateBoard, StateBoardSnapshot, StateBoardStorage, TaskEntry, TaskStage, BoardSummary, EventEntry, EventLevel};
 
 // ===== 版本標記 =====
 

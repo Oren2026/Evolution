@@ -4,9 +4,8 @@
 //! 不要求特定格式，使用者可用中英文自由輸入
 //!
 //! 意圖分類：
-//!   - system: 開啟檔案、執行 CLI、開啟應用
-//!   - evolution: analyze / new project / 專案操作
-//!   - opencode: 任務委派給 OpenCode
+//!   - system: 開啟檔案、執行 CLI、開啟應用（真正執行 open）
+//!   - evolution: analyze / new / status / list-skills / init（真正呼叫 CLI）
 //!   - calendar: 行事曆事件記錄
 //!   - general: 一般問答
 
@@ -100,7 +99,7 @@ pub fn shell() {
 /// 意圖分類
 fn classify_intent(backend: &OllamaBackend, input: &str) -> String {
     let prompt = format!(
-        "輸入：「{}」\n\n分類（只回一個英文單字）：\nsystem / evolution / opencode / calendar / general",
+        "輸入：「{}」\n\n分類（只回一個英文單字）：\nsystem / evolution / calendar / general",
         input
     );
     let req = ModelRequest {
@@ -118,8 +117,6 @@ fn classify_intent(backend: &OllamaBackend, input: &str) -> String {
                 "system".to_string()
             } else if result.contains("evolution") {
                 "evolution".to_string()
-            } else if result.contains("opencode") {
-                "opencode".to_string()
             } else if result.contains("calendar") {
                 "calendar".to_string()
             } else {
@@ -135,7 +132,6 @@ fn execute(backend: &OllamaBackend, input: &str, intent: &str) -> String {
     match intent {
         "system" => handle_system(backend, input),
         "evolution" => handle_evolution(backend, input),
-        "opencode" => handle_opencode(backend, input),
         "calendar" => handle_calendar(backend, input),
         _ => handle_general(backend, input),
     }
@@ -173,7 +169,7 @@ fn handle_system(backend: &OllamaBackend, input: &str) -> String {
         Err(e) => return format!("LLM 錯誤：{}", e),
     };
 
-    // 簡單解析 YAML（找「路徑」或「目標」）
+    // 解析 YAML
     let path = extract_yaml_field(&resp, "路徑");
     let target = extract_yaml_field(&resp, "目標");
 
@@ -181,36 +177,85 @@ fn handle_system(backend: &OllamaBackend, input: &str) -> String {
         return "我不太確定你要開啟什麼，可以說具體一點嗎？\n例如：「開啟 Safari」或「執行 node --version」".to_string();
     }
 
-    let cmd = if !path.is_empty() {
-        format!("open \"{}\"", path)
+    // 根據關鍵字偵測應用類型
+    let target_lower = target.to_lowercase();
+
+    // 遊戲類：直接執行
+    if target_lower.contains("遊戲") || target_lower.contains("game") || target_lower.contains("minecraft") {
+        if target_lower.contains("minecraft") {
+            return exec_open("/Applications/Minecraft.app");
+        }
+        return "我找不到這個遊戲，請告訴我完整的名稱或路徑".to_string();
+    }
+
+    // 一般開檔/執行命令
+    let exec_path = if !path.is_empty() {
+        path.clone()
     } else {
         target.clone()
     };
 
-    // 檢查是否是常見應用
-    if target.contains("遊戲") || target.contains("game") {
-        let game_path = find_game(&target);
-        if let Some(p) = game_path {
-            return format!("啟動遊戲：{} ... 執行中 🎮", p);
-        }
-    }
+    // 如果是相對路徑或檔名，尝试扩张
+    let final_path = if exec_path.starts_with("/") || exec_path.starts_with("~/") {
+        exec_path
+    } else if exec_path.contains(".") {
+        // 可能是檔案，相對路徑
+        std::env::current_dir()
+            .map(|p| p.join(&exec_path).to_string_lossy().to_string())
+            .unwrap_or(exec_path)
+    } else {
+        // 假設是應用程式名
+        format!("/Applications/{}.app", exec_path)
+    };
 
-    format!("即將執行：{}\n（系統指令）", cmd)
+    exec_open(&final_path)
 }
 
-/// Evolution: analyze / new project
+/// 執行 open 命令並回報結果
+fn exec_open(path: &str) -> String {
+    // 處理 ~ 擴展
+    let expanded = if path.starts_with("~/") {
+        dirs::home_dir()
+            .map(|h| h.join(path.trim_start_matches("~/")))
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.to_string())
+    } else {
+        path.to_string()
+    };
+
+    match std::process::Command::new("open").arg(&expanded).spawn() {
+        Ok(_) => format!("✅ 已執行：open \"{}\"", expanded),
+        Err(e) => {
+            // 尝试直接執行命令
+            match std::process::Command::new("sh").arg("-c").arg(&expanded).spawn() {
+                Ok(_) => format!("✅ 已執行：{}", expanded),
+                Err(_) => format!("❌ 無法執行：{}\n原因：{}", expanded, e),
+            }
+        }
+    }
+}
+
+/// Evolution: 自然語言驅動，用真正的命令
 fn handle_evolution(backend: &OllamaBackend, input: &str) -> String {
+    // 用 LLM 理解使用者想要做什麼 Evolution 操作
     let prompt = format!(
         r#"輸入：「{}」
 
-這是 Evolution OS 的指令，提取：
-1. 指令類型（analyze / new / status / list-skills / init）
-2. 參數（任務描述 或 專案名稱）
+这是 Evolution OS 的指令。判斷使用者想要：
+1. 分析任務（analyze）- 「分析XX」「帮我看XX」「检视XX」
+2. 建立專案（new）- 「建立專案」「新專案」「創建」
+3. 查看狀態（status）- 「系統狀態」「目前怎樣」
+4. 列出技能（list-skills）- 「有什麼技能」「技能列表」
+5. 初始化（init）- 「初始化」「生成概述」
+6. 開啟 shell（shell）- 「進入對話模式」「開始聊天」
 
-YAML 格式：
+提取：
+- 操作類型
+- 参數（如專案名稱或任務描述）
 
-指令：「」
-參數：「」
+只回 YAML：
+操作：「」
+参数：「」
 "#,
         input
     );
@@ -228,34 +273,107 @@ YAML 格式：
         Err(e) => return format!("LLM 錯誤：{}", e),
     };
 
-    let cmd = extract_yaml_field(&resp, "指令");
-    let param = extract_yaml_field(&resp, "參數");
+    let op = extract_yaml_field(&resp, "操作");
+    let param = extract_yaml_field(&resp, "参数");
 
-    match cmd.as_str() {
+    match op.as_str() {
         "analyze" => {
             if param.is_empty() {
-                "分析任務需要具體描述，例如：「分析：建立一個計數器網頁」".to_string()
+                "🔍 要分析什麼？\n例如：「帮我分析這個資料夾的結構」或「分析：建立一個計數器」".to_string()
             } else {
-                format!("🚀 啟動 Evolution 分析：{}\n\n[分析引擎啟動中...]", param)
+                // 真正執行 analyze
+                let output = std::process::Command::new("cargo")
+                    .args(["run", "--", "analyze", &param])
+                    .current_dir("/Users/oren/Desktop/Evolution-new")
+                    .output();
+
+                match output {
+                    Ok(out) => {
+                        let stdout = String::from_utf8_lossy(&out.stdout);
+                        let stderr = String::from_utf8_lossy(&out.stderr);
+                        if stdout.is_empty() && stderr.is_empty() {
+                            "✅ 分析完成（無輸出）".to_string()
+                        } else if out.status.success() {
+                            format!("✅ 分析完成\n{}", stdout.trim())
+                        } else {
+                            format!("⚠️ 分析完成但有警告：\n{}\n{}", stderr.trim(), stdout.trim())
+                        }
+                    }
+                    Err(e) => format!("❌ 無法執行分析：{}\n提示：先確認任務描述是否完整", e),
+                }
             }
         }
         "new" => {
             if param.is_empty() {
-                "新專案需要名稱，例如：「新專案叫電商系統」".to_string()
+                "📁 新專案要叫什麼名字？\n例如：「新專案叫電商系統」".to_string()
             } else {
-                format!("📁 建立新專案：{}\n\n[專案建立中...]", param)
+                // 真正執行 new_project
+                let output = std::process::Command::new("cargo")
+                    .args(["run", "--", "new", &param])
+                    .current_dir("/Users/oren/Desktop/Evolution-new")
+                    .output();
+
+                match output {
+                    Ok(out) => {
+                        if out.status.success() {
+                            format!("✅ 專案「{}」建立完成", param)
+                        } else {
+                            format!("❌ 建立失敗：{}", String::from_utf8_lossy(&out.stderr).trim())
+                        }
+                    }
+                    Err(e) => format!("❌ 無法建立專案：{}", e),
+                }
             }
         }
-        "status" => "🔍 系統狀態檢查中...\n".to_string(),
-        "list-skills" => "📋 技能列表讀取中...\n".to_string(),
+        "status" => {
+            // 真正執行 status
+            let output = std::process::Command::new("cargo")
+                .args(["run", "--", "status"])
+                .current_dir("/Users/oren/Desktop/Evolution-new")
+                .output();
+
+            match output {
+                Ok(out) => {
+                    if out.status.success() {
+                        String::from_utf8_lossy(&out.stdout).trim().to_string()
+                    } else {
+                        format!("❌ 狀態查詢失敗：{}", String::from_utf8_lossy(&out.stderr).trim())
+                    }
+                }
+                Err(e) => format!("❌ 無法查詢狀態：{}", e),
+            }
+        }
+        "list-skills" => {
+            // 真正執行 list_skills
+            let output = std::process::Command::new("cargo")
+                .args(["run", "--", "list-skills"])
+                .current_dir("/Users/oren/Desktop/Evolution-new")
+                .output();
+
+            match output {
+                Ok(out) => String::from_utf8_lossy(&out.stdout).trim().to_string(),
+                Err(e) => format!("❌ 無法列出技能：{}", e),
+            }
+        }
         "init" => {
+            let proj = if param.is_empty() { None } else { Some(param.as_str()) };
+            crate::commands::init::init(proj);
             if param.is_empty() {
-                format!("📄 初始化系統概述")
+                "✅ 概述（系統）已生成".to_string()
             } else {
-                format!("📄 初始化專案概述：{}", param)
+                format!("✅ 概述：{} 已生成", param)
             }
         }
-        _ => format!("收到 Evolution 指令：{}（參數：{}）\n[準備執行中...]", cmd, param),
+        "shell" => {
+            "🔄 切換到 shell 模式，請輸入 exit 回到一般對話".to_string()
+        }
+        _ => {
+            if op.is_empty() {
+                "🤔 我不太理解你要做什麼 Evolution 操作。\n可以說：「幫我分析這個任務」「建立新專案」「查看系統狀態」".to_string()
+            } else {
+                format!("⚠️ 不支援的 Evolution 操作：{}\n嘗試說：「幫我分析XX」「新專案叫XX」", op)
+            }
+        }
     }
 }
 
@@ -384,22 +502,3 @@ fn extract_yaml_field(yaml: &str, field: &str) -> String {
     String::new()
 }
 
-/// 找遊戲路徑（簡單版）
-fn find_game(name: &str) -> Option<String> {
-    let name_lower = name.to_lowercase();
-
-    // 常見遊戲
-    let games = [
-        ("minecraft", "/Applications/Minecraft.app"),
-        ("safari", "/Applications/Safari.app"),
-        ("terminal", "/Applications/Utilities/Terminal.app"),
-    ];
-
-    for (keyword, path) in &games {
-        if name_lower.contains(keyword) {
-            return Some(path.to_string());
-        }
-    }
-
-    None
-}

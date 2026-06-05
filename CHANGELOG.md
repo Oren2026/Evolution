@@ -6,6 +6,72 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.0] — 2026-06-05
+
+### Added
+
+- **`StateBoard` — 系統狀態表**：
+  - `src/system/state_board.rs` — TaskEntry、PresenceEntry、EventEntry、TaskStage、StateBoard 本體
+  - `src/system/state_board_storage.rs` — 持久化至 `~/.evolution/state_board.json`
+  - `BoardSummary`、`StateBoardSnapshot` 結構
+  - 自動事件生成（Done → EventLevel::Done，Blocked → EventLevel::NeedsUser）
+
+- **`evolution board` CLI 命令**：
+  - `evolution board` — 顯示任務概覽（依階段分組）
+  - `evolution board events` — 顯示未送達事件
+  - `evolution board <uuid>` — 單一任務詳情（含階段歷史）
+  - `evolution board clear` — 清除已完成任務
+  - 實作：`src/commands/board.rs`（202 lines）
+
+- **`IntentCommandDB` — 意圖命令資料庫**：
+  - `src/commands/intent_router.rs`（514 lines）
+  - `IntentCommandDB`：`CommandDef` + `CommandSlot` + `aliases` + `examples`
+  - `IntentRouter`：關鍵字匹配（`route_keyword`）+ LLM 意圖分類（`route_with_model`）
+  - 內建 13 個命令：board（4）、planner（2）、system（3）、dev（1）、query（2）
+  - 預設使用 `gemma4:e2b` 模型做意圖分類
+
+### Changed
+
+- **`src/main.rs`**：`Board` subcommand 加入 CLI match arm
+- **`src/commands/mod.rs`**：公開 `board` 模組
+- **`src/lib.rs`**：export StateBoard 相關類型
+
+### Fixed
+
+- **`src/system/state_board_storage.rs`**：`super::state_board` → `crate::system::state_board`（修正超模組 import 路徑，修復編譯阻擋）
+- `crate::model` → `evolution_os::model`（bin crate 正確路徑）
+- `ModelRequest::new(model, prompt)` 參數順序（原本 3 個參數，實際只需要 2 個）
+- `&[String]` pattern matching 改用 `(bool, Option<&str>)` 元組避免 slice パターン不相容
+- `EventLevel::Error` 不存在，改用 `Warning` 替代
+
+### Test Status
+
+- `cargo build`：通過（28 warnings，0 errors）
+- `cargo test`：108 tests passed, 0 failures
+
+---
+
+## [0.3.2] — 2026-06-03
+
+### Added
+
+- **`shell` mode — 真實命令執行**：
+  - `handle_system`：真正執行 `open` 開檔（支援路徑擴展、應用程式名自動補 `.app`）
+  - `handle_evolution`：真正呼叫 CLI 命令（`analyze` / `new` / `status` / `list-skills` / `init`），不再只是印 placeholder
+
+### Changed
+
+- **`classify_intent` prompt**：移除 `opencode` 分類（已拔除）
+- **Intent 分類数**：5 → 4（system / evolution / calendar / general）
+- **`handle_opencode`**：標記為 stub，輸出 `[任務委派中...]` 不再提供
+
+### Removed
+
+- **`opencode` intent 分支**：不適合 Evolution OS 的單一 CLI 模型，移除
+- **`find_game()`**：功能已整合进 `exec_open()`，不再需要
+
+---
+
 ## [0.3.1] — 2026-05-29
 
 ### Added

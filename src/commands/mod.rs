@@ -1,11 +1,13 @@
 //! commands — CLI commands implementation
 
+pub mod intent_router;
 pub mod new_project;
 pub mod analyze;
 pub mod list_skills;
 pub mod shell;
 pub mod status;
 pub mod init;
+pub mod board;
 
 pub mod ollama_check;
 pub mod boot;
@@ -20,3 +22,4 @@ pub use init::init;
 pub use ollama_check::{check as ollama_check, install as ollama_install, start as ollama_start};
 pub use boot::{boot, boot_json, evolution_root};
 pub use test_record::{record_test, start_test, list_tests, all_tests_json};
+pub use board::board;
