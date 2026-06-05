@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::model::{ModelDispatcher, ModelRequest};
+
 // ═══════════════════════════════════════════════════════════════════
 // 資料模型
 // ═══════════════════════════════════════════════════════════════════
@@ -413,6 +415,65 @@ impl StateBoard {
             last_heartbeat: self.presence.last_heartbeat,
             is_alive: self.presence.is_alive,
         }
+    }
+
+    // ─── LLM 主動理解 ─────────────────────────────────────────────
+
+    /// 使用 LLM 讀取未送達事件，生成系統建議
+    ///
+    /// `backend` — LLM backend（Required，否則回 Err）
+    ///
+    /// 回傳：LLM 生成的系統建議字串，失敗時回 Err
+    pub fn understand_events(
+        &self,
+        backend: &dyn ModelDispatcher,
+    ) -> Result<String, String> {
+        use crate::system::EventGenerator;
+
+        let undelivered = self.undelivered_events();
+        if undelivered.is_empty() {
+            return Ok("沒有待處理事件。系統正常運行。".to_string());
+        }
+
+        // 將事件序列化為 prompt 上下文
+        let events_context = undelivered
+            .iter()
+            .map(|e| {
+                let interp = e.interpretation.as_deref().unwrap_or("(無 LLM 解讀)");
+                format!(
+                    "- [{}] 任務「{}」：{} — 解讀：{}",
+                    e.level,
+                    e.task_id.as_deref().unwrap_or("(未知)"),
+                    e.message,
+                    interp
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let task_summary = self
+            .tasks
+            .iter()
+            .map(|t| format!("- 「{}」：{}", t.name, t.stage))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let prompt = format!(
+            "以下是 Evolution OS 的系統狀態，請分析並給出系統建議：\n\n== 待處理事件 ==\n{}\n\n== 目前任務狀態 ==\n{}\n\n請用繁體中文：\n1. 判斷是否有需要使用者注意的問題\n2. 指出系統瓶頸或風險\n3. 建議下一個優先處理的方向\n\n格式：直接回覆建議，100-200 字，用自然段落。",
+            events_context,
+            task_summary
+        );
+
+        let gen = EventGenerator::new();
+        let req = ModelRequest::new(gen.default_model(), &prompt)
+            .with_temperature(0.4)
+            .with_max_tokens(300);
+
+        let resp = backend
+            .dispatch(req)
+            .map_err(|e| format!("LLM dispatch failed: {}", e))?;
+
+        Ok(resp.content.trim().to_string())
     }
 }
 

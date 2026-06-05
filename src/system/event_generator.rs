@@ -23,6 +23,11 @@ impl EventGenerator {
         }
     }
 
+    /// 取得預設模型名稱
+    pub fn default_model(&self) -> &str {
+        &self.default_model
+    }
+
     /// LLM 解讀階段轉換，生成更具體的事件描述
     ///
     /// `task_name` — 任務名稱
