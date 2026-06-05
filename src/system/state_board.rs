@@ -152,6 +152,8 @@ pub struct EventEntry {
     pub task_id: Option<String>,
     pub level: EventLevel,
     pub message: String,
+    /// LLM 解讀結果（Interpretation）— 階段轉換時由 EventGenerator 生成
+    pub interpretation: Option<String>,
     pub created_at: DateTime<Utc>,
     pub delivered: bool,
 }
@@ -163,9 +165,16 @@ impl EventEntry {
             task_id,
             level,
             message,
+            interpretation: None,
             created_at: Utc::now(),
             delivered: false,
         }
+    }
+
+    /// 使用完整的 interpretation（通常來自 EventGenerator）
+    pub fn with_interpretation(mut self, interpretation: String) -> Self {
+        self.interpretation = Some(interpretation);
+        self
     }
 
     pub fn done(message: String, task_id: Option<String>) -> Self {
@@ -239,31 +248,57 @@ impl StateBoard {
     }
 
     /// 更新任務階段，回傳是否成功
-    pub fn update_stage(&mut self, id: &str, stage: TaskStage, note: Option<String>) -> bool {
+    ///
+    /// `backend` — 可選的 LLM backend，會用 EventGenerator 解讀階段轉換
+    pub fn update_stage(
+        &mut self,
+        id: &str,
+        stage: TaskStage,
+        note: Option<String>,
+        backend: Option<&dyn crate::model::ModelDispatcher>,
+    ) -> bool {
         let task = match self.get_task_mut(id) {
             Some(t) => t,
             None => return false,
         };
+        let from_stage = task.stage.clone();
         task.transition_to(stage.clone(), note);
 
-        // 自動發出事件
+        // 自動發出事件（帶 LLM 解讀）
         let event = match &stage {
-            TaskStage::Done => Some(EventEntry::done(
-                format!("任務「{}」已完成", task.name),
-                Some(id.to_string()),
-            )),
-            TaskStage::Blocked => Some(EventEntry::needs_user(
-                format!("任務「{}」需要你做決定", task.name),
-                Some(id.to_string()),
-            )),
+            TaskStage::Done => {
+                let base = format!("任務「{}」已完成", task.name);
+                let msg = Self::llm_interpret(&task.name, &from_stage, &stage, backend)
+                    .map(| interp | format!("{} — {}", base, interp))
+                    .unwrap_or(base);
+                Some(EventEntry::done(msg, Some(id.to_string())))
+            }
+            TaskStage::Blocked => {
+                let base = format!("任務「{}」需要你做決定", task.name);
+                let msg = Self::llm_interpret(&task.name, &from_stage, &stage, backend)
+                    .map(| interp | format!("{} — {}", base, interp))
+                    .unwrap_or(base);
+                Some(EventEntry::needs_user(msg, Some(id.to_string())))
+            }
             _ => None,
         };
         if let Some(evt) = event {
             self.events.push(evt);
         }
 
-        // 自动发出事件
         true
+    }
+
+    /// 使用 EventGenerator 生成 LLM 解讀（可選）
+    fn llm_interpret(
+        task_name: &str,
+        from: &TaskStage,
+        to: &TaskStage,
+        backend: Option<&dyn crate::model::ModelDispatcher>,
+    ) -> Option<String> {
+        use crate::system::EventGenerator;
+        let gen = EventGenerator::new();
+        gen.interpret_transition(task_name, from, to, backend)
     }
 
     /// 刪除任務（已完成或已放棄）
@@ -415,7 +450,7 @@ mod tests {
         let id = board.create_task("test".into());
         assert_eq!(board.get_task(&id).unwrap().stage, TaskStage::Pending);
 
-        board.update_stage(&id, TaskStage::Planning, None);
+        board.update_stage(&id, TaskStage::Planning, None, None);
         assert_eq!(board.get_task(&id).unwrap().stage, TaskStage::Planning);
 
         // 歷史記錄
@@ -429,8 +464,8 @@ mod tests {
     fn test_done_generates_event() {
         let mut board = StateBoard::new();
         let id = board.create_task("my-task".into());
-        board.update_stage(&id, TaskStage::Executing, None);
-        board.update_stage(&id, TaskStage::Done, None);
+        board.update_stage(&id, TaskStage::Executing, None, None);
+        board.update_stage(&id, TaskStage::Done, None, None);
 
         let events: Vec<_> = board.undelivered_events().into_iter().cloned().collect();
         assert_eq!(events.len(), 1);
@@ -442,7 +477,7 @@ mod tests {
     fn test_blocked_generates_event() {
         let mut board = StateBoard::new();
         let id = board.create_task("my-task".into());
-        board.update_stage(&id, TaskStage::Blocked, None);
+        board.update_stage(&id, TaskStage::Blocked, None, None);
 
         let events: Vec<_> = board.undelivered_events().into_iter().cloned().collect();
         assert_eq!(events.len(), 1);
@@ -463,7 +498,7 @@ mod tests {
         let mut board = StateBoard::new();
         board.create_task("t1".into());
         let id2 = board.create_task("t2".into());
-        board.update_stage(&id2, TaskStage::Done, None);
+        board.update_stage(&id2, TaskStage::Done, None, None);
 
         let snap = board.snapshot();
         let restored = StateBoard::from_snapshot(snap);

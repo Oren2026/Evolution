@@ -89,7 +89,7 @@ mod tests {
         let mut board = StateBoard::new();
         board.create_task("task-a".into());
         let id2 = board.create_task("task-b".into());
-        board.update_stage(&id2, TaskStage::Done, None);
+        board.update_stage(&id2, TaskStage::Done, None, None);
 
         storage.save(&board).unwrap();
         assert!(storage.exists());
