@@ -6,6 +6,7 @@
 //! Phase 4: 準備就緒
 
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 /// 開機 phase 狀態
@@ -196,16 +197,33 @@ fn check_model() -> BootResult {
     let has_gemma4 = models.iter().any(|m| m.contains("gemma4:e2b"));
 
     if !has_gemma4 {
-        return BootResult {
-            success: false,
-            phase: BootPhase::ModelVerification,
-            message: "gemma4:e2b 模型未安裝".to_string(),
-            details: serde_json::json!({
-                "error": "Model gemma4:e2b not found",
-                "available_models": models,
-                "hint": "執行: ollama pull gemma4:e2b"
-            }),
-        };
+        // 嘗試自動安裝
+        let installed = try_install_gemma4();
+        if !installed {
+            return BootResult {
+                success: false,
+                phase: BootPhase::ModelVerification,
+                message: "gemma4:e2b 模型未安裝".to_string(),
+                details: serde_json::json!({
+                    "error": "Model gemma4:e2b not found",
+                    "available_models": models,
+                    "hint": "執行: ollama pull gemma4:e2b"
+                }),
+            };
+        }
+        // 安裝成功，重新檢查
+        let models = backend.available_models();
+        if !models.iter().any(|m| m.contains("gemma4:e2b")) {
+            return BootResult {
+                success: false,
+                phase: BootPhase::ModelVerification,
+                message: "gemma4:e2b 模型安裝後仍未出現".to_string(),
+                details: serde_json::json!({
+                    "error": "Model still not found after install",
+                    "available_models": models
+                }),
+            };
+        }
     }
 
     // 實際推理測試
@@ -239,6 +257,72 @@ fn check_model() -> BootResult {
             "tokens_used": 50
         }),
     }
+}
+
+/// 嘗試安裝 gemma4:e2b（非互動式詢問後執行）
+/// 回傳是否成功安裝
+fn try_install_gemma4() -> bool {
+    // 檢查是否為 TTY，若是則詢問
+    if is_attended() {
+        print!("⚙️  gemma4:e2b 模型未安裝，是否自動下載安裝？ [Y/n] ");
+        io::stdout().flush().unwrap();
+        let mut input = String::new();
+        if io::stdin().read_line(&mut input).is_ok() {
+            let ans = input.trim().to_lowercase();
+            if !ans.is_empty() && ans != "y" && ans != "yes" {
+                println!("取消安裝。");
+                return false;
+            }
+        }
+    } else {
+        // 非互動模式，直接嘗試安裝
+        println!("⚙️  gemma4:e2b 模型未安裝，自動嘗試下載...");
+    }
+
+    println!();
+    println!("📦 開始下載 gemma4:e2b（首次約 4GB，請稍候）...");
+    println!("----------------------------------------");
+
+    let output = std::process::Command::new("ollama")
+        .args(["pull", "gemma4:e2b"])
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .spawn();
+
+    match output {
+        Ok(mut child) => {
+            let status = child.wait();
+            match status {
+                Ok(s) if s.success() => {
+                    println!("----------------------------------------");
+                    println!("✅ gemma4:e2b 安裝完成！");
+                    true
+                }
+                Ok(s) => {
+                    println!("----------------------------------------");
+                    eprintln!("❌ 安裝失敗（exit code: {}）", s);
+                    false
+                }
+                Err(e) => {
+                    println!("----------------------------------------");
+                    eprintln!("❌ 安裝執行失敗: {}", e);
+                    false
+                }
+            }
+        }
+        Err(e) => {
+            println!("----------------------------------------");
+            eprintln!("❌ 無法執行 ollama: {}", e);
+            eprintln!("提示：確認 Ollama 已啟動（ollama serve）");
+            false
+        }
+    }
+}
+
+/// 檢查是否為互動式終端
+fn is_attended() -> bool {
+    use std::io::IsTerminal;
+    std::io::stdin().is_terminal()
 }
 
 /// Phase 4: 初始化虛擬 OS 環境
