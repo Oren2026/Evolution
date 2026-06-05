@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **`src/commands/shell.rs`**：重構為 IntentRouter 主動路由 + execute_evolution_cli() 直接執行 Evolution CLI，移除重複的 classify_intent/init 呼叫
 - **`src/main.rs`**：`Board` subcommand 加入 CLI match arm
 - **`src/commands/mod.rs`**：公開 `board` 模組
 - **`src/lib.rs`**：export StateBoard 相關類型
